@@ -1,9 +1,5 @@
-import generateID from "./utils/IDgenerator.js";
-let count = 0;
-while (1) {
-    count++;
-    if (count > 1000)
-        break;
-    console.log(generateID());
-}
+import app from "./app.js";
+app.listen(3000, () => {
+    console.log("App is running on port http://localhost:3000");
+});
 //# sourceMappingURL=index.js.map
