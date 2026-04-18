@@ -1,29 +1,29 @@
 let EPOCH = 1700000000000;
 
-let timestamp: number = 0;
-let lastTimestamp: number = 0;
+let timestamp: bigint = 0n;
+let lastTimestamp: bigint = 0n;
 
-let machineID: number = 1;
+let machineID: bigint = 1n;
 
-let sequence: number = 0;
+let sequence: bigint = 0n;
 
-export default function generateID() {
-  timestamp = Date.now();
+export default function generateID(): bigint {
+  timestamp = BigInt(Date.now());
 
   if (timestamp === lastTimestamp) {
-    sequence = (sequence + 1) & 0xfff;
+    sequence = (sequence + 1n) & 0xfffn;
 
-    if (sequence === 0) {
+    if (sequence === 0n) {
       timestamp = lastTimestamp;
 
       while (Date.now() <= lastTimestamp) {}
-      timestamp = Date.now();
+      timestamp = BigInt(Date.now());
     }
   } else {
-    sequence = 0;
+    sequence = 0n;
   }
 
   lastTimestamp = timestamp;
 
-  return ((timestamp - EPOCH) << 22) | (machineID << 22) | (sequence << 12);
+  return ((timestamp - BigInt(EPOCH)) << 22n) | (machineID << 22n) | sequence;
 }
