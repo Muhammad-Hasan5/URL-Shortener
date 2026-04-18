@@ -5,9 +5,9 @@ export const generateShortCode = () => {
     let num = id;
     let res = "";
     let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    while (id > 0) {
-        res = chars[id % 62] + res;
-        num = Math.floor(id / 62);
+    while (num > 0) {
+        res = chars[num % 62] + res;
+        num = Math.floor(num / 62);
     }
     return { id, shortCode: res };
 };

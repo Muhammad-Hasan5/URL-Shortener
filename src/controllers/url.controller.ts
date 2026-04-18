@@ -8,7 +8,7 @@ import { query } from "../db/index.js";
 
 // covnert long url to SHORT one
 export const shortURL = async (req: Request, res: Response) => {
-  const { longURL } = req.body;
+  const {longURL}  = req.body;
 
   //validate long url
   try {
