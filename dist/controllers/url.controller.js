@@ -32,7 +32,7 @@ export const shortURL = async (req, res) => {
             }
             //inserting into DB
             await saveToDB({
-                id: result.id,
+                id: result.id.toString(),
                 shortCode: result.shortCode,
                 longURL,
             });
