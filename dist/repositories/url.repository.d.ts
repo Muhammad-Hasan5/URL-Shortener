@@ -1,5 +1,5 @@
 export declare const saveToDB: (result: {
-    id: number;
+    id: string;
     shortCode: string;
     longURL: string;
 }) => Promise<import("pg").QueryResult<any> | undefined>;

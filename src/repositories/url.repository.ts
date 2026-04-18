@@ -2,7 +2,7 @@ import { query } from "../db/index.js";
 
 // save in db
 export const saveToDB = async (result: {
-  id: number;
+  id: string;
   shortCode: string;
   longURL: string;
 }) => {
