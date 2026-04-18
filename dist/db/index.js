@@ -15,8 +15,11 @@ const createTable = async () => {
       );
     `;
         await pool.query(query);
-        //TODO: create index on short_code
-        console.log("Table created successfully");
+        // create index on short_code
+        const indexQuery = `CREATE INDEX IF NOT EXISTS idx_long_url 
+                        ON urls (long_url)`;
+        await pool.query(indexQuery);
+        console.log("Table created successfully with indexes");
     }
     catch (error) {
         console.log("error creating table", error.stack);
