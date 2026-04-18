@@ -1,5 +1,5 @@
 export declare const generateShortCode: () => {
-    id: number;
+    id: bigint;
     shortCode: string;
 };
 //# sourceMappingURL=url.service.d.ts.map
