@@ -1,5 +1,7 @@
+process.loadEnvFile()
+
 import app from "./app.js";
 
-app.listen(3000, () => {
-  console.log("App is running on port http://localhost:3000");
+app.listen(process.env.PORT, () => {
+  console.log(`App is running on port http://localhost:${process.env.PORT}`);
 });
