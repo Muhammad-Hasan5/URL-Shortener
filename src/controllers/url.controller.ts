@@ -3,12 +3,14 @@ process.loadEnvFile()
 import type { Request, Response } from "express";
 import { generateShortCode } from "../services/url.service.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
+import { query } from "../db/index.js";
 
 
-// covnert long url to short one
+// covnert long url to SHORT one
 export const shortURL = async (req: Request, res: Response) => {
   const { longURL } = req.body;
 
+  //validate long url
   try {
     new URL(longURL)
   } catch {
@@ -19,42 +21,57 @@ export const shortURL = async (req: Request, res: Response) => {
     });
   }
 
-  // call service to short url
-  const result = generateShortCode();
-
-  //TODO: check if it is already exists or not to avoid duplicates
 
   // save into db
   let attempts = 0;
-  let DBres;
 
   while(attempts < 3){
     try {
-      DBres = await saveToDB({ id: result.id, shortCode: result.shortCode, longURL });
-    } catch {
-      attempts++
+      // call service to short url
+      const result = generateShortCode();
+
+
+      // checking if already exists or not
+      const existing = await query(`SELECT short_code FROM urls WHERE long_url = $1`, [longURL])
+      if(existing?.rows.length as number > 0){
+         return res.status(200).json({
+           success: true,
+           shortURL: `${process.env.BASE_URL}/${existing?.rows[0].short_code}`,
+         });
+      }
+
+
+      //inserting into DB
+      await saveToDB({
+        id: result.id,
+        shortCode: result.shortCode,
+        longURL,
+      });
+
+
+      //response
+      const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT}`
+
+      return res.status(201).json({
+        status: 201,
+        success: true,
+        msg: "long url is shortened and saved in DB",
+        shortURL: `${baseURL}/${result.shortCode}`
+      });
+
+    } catch (error: any){
+      if(error.code === "23505"){
+        attempts++;
+        continue
+      }
+
+      console.log("Error occuring while saving to DB", error);
     }
   }
-
-  if(!DBres){
-    return res.status(500).json({
-      success: false,
-      msg: "failed to save URL",
-    });
-  }
-
-  //response
-  return res.status(201).json({
-    status: 201,
-    success: true,
-    msg: "long url is shortened and saved in DB",
-    shortURL:
-      `${process.env.BASE_URL}/${result.shortCode}` ||
-      `http://localhost:${process.env.PORT}/${result.shortCode}`,
-  });
 };
 
-// redirect to long url
+
+// REDIRECT to long url
 export const redirect = async (req: Request, res: Response) => {
   const { shortCode } = req.params;
   if (!shortCode) {
@@ -65,17 +82,17 @@ export const redirect = async (req: Request, res: Response) => {
     });
   }
 
+
   // call db to get redirect long url
   const result = await getFromDB(shortCode as string);
-
-  if (!result) {
-    return res.status(404).json({
-      status: 404,
-      success: false,
-      msg: "url not exist on DB",
-    });
-  }
+    if (result?.rows.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        msg: "url not exist on DB",
+      });
+    }
 
   // redirect
-  return res.status(302).redirect(302, result!.rows[0].long_url);
+  return res.redirect(302, result!.rows[0].long_url);
 };
