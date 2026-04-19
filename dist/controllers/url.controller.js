@@ -2,6 +2,7 @@ process.loadEnvFile();
 import { generateShortCode } from "../services/url.service.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
 import { query } from "../db/index.js";
+import { setToCache, getFromCache } from "../services/cache.service.js";
 // covnert long url to SHORT one
 export const shortURL = async (req, res) => {
     const { longURL } = req.body;
@@ -22,12 +23,24 @@ export const shortURL = async (req, res) => {
         try {
             // call service to short url
             const result = generateShortCode();
-            // checking if already exists or not
-            const existing = await query(`SELECT short_code FROM urls WHERE long_url = $1`, [longURL]);
-            if (existing?.rows.length > 0) {
+            // checking if already in cache or not
+            const cacheResult = await getFromCache(result.shortCode);
+            if (!cacheResult) {
+                console.log("CACHE MISS");
+                // checking if already in DB or not
+                const existing = await query(`SELECT short_code FROM urls WHERE long_url = $1`, [longURL]);
+                if (existing?.rows.length > 0) {
+                    return res.status(200).json({
+                        success: true,
+                        shortURL: `${process.env.BASE_URL}/${existing?.rows[0].short_code}`,
+                    });
+                }
+            }
+            else {
+                console.log("CACHE HIT");
                 return res.status(200).json({
                     success: true,
-                    shortURL: `${process.env.BASE_URL}/${existing?.rows[0].short_code}`,
+                    shortURL: cacheResult,
                 });
             }
             //inserting into DB
@@ -36,13 +49,15 @@ export const shortURL = async (req, res) => {
                 shortCode: result.shortCode,
                 longURL,
             });
+            //save new record to cache
+            await setToCache(result.shortCode, longURL);
             //response
             const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT}`;
             return res.status(201).json({
                 status: 201,
                 success: true,
                 msg: "long url is shortened and saved in DB",
-                shortURL: `${baseURL}/${result.shortCode}`
+                shortURL: `${baseURL}/${result.shortCode}`,
             });
         }
         catch (error) {
@@ -57,6 +72,7 @@ export const shortURL = async (req, res) => {
 // REDIRECT to long url
 export const redirect = async (req, res) => {
     const { shortCode } = req.params;
+    //validate param: short code
     if (!shortCode) {
         return res.status(400).json({
             status: 400,
@@ -64,16 +80,26 @@ export const redirect = async (req, res) => {
             msg: "short code is not available",
         });
     }
-    // call db to get redirect long url
-    const result = await getFromDB(shortCode);
-    if (result?.rows.length === 0) {
-        return res.status(404).json({
-            status: 404,
-            success: false,
-            msg: "url not exist on DB",
-        });
+    // check cache to get redirect long url
+    const cacheResult = await getFromCache(String(shortCode));
+    if (!cacheResult) {
+        console.log("CACHE MISS");
+        // call db to get redirect long url
+        const result = await getFromDB(shortCode);
+        //validate DB results
+        if (result?.rows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                success: false,
+                msg: "url not exist on DB",
+            });
+        }
+        // redirect
+        return res.redirect(302, result.rows[0].long_url);
     }
-    // redirect
-    return res.redirect(302, result.rows[0].long_url);
+    else {
+        console.log("CACHE HIT");
+        return res.redirect(302, cacheResult);
+    }
 };
 //# sourceMappingURL=url.controller.js.map

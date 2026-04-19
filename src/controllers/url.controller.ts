@@ -1,18 +1,18 @@
-process.loadEnvFile()
+process.loadEnvFile();
 
 import type { Request, Response } from "express";
 import { generateShortCode } from "../services/url.service.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
 import { query } from "../db/index.js";
-
+import { setToCache, getFromCache } from "../services/cache.service.js";
 
 // covnert long url to SHORT one
 export const shortURL = async (req: Request, res: Response) => {
-  const {longURL}  = req.body;
+  const { longURL } = req.body;
 
   //validate long url
   try {
-    new URL(longURL)
+    new URL(longURL);
   } catch {
     return res.status(400).json({
       status: 400,
@@ -21,25 +21,40 @@ export const shortURL = async (req: Request, res: Response) => {
     });
   }
 
-
   // save into db
   let attempts = 0;
 
-  while(attempts < 3){
+  while (attempts < 3) {
     try {
       // call service to short url
       const result = generateShortCode();
 
+      // checking if already in cache or not
+      const cacheResult = await getFromCache(result.shortCode);
 
-      // checking if already exists or not
-      const existing = await query(`SELECT short_code FROM urls WHERE long_url = $1`, [longURL])
-      if(existing?.rows.length as number > 0){
-         return res.status(200).json({
-           success: true,
-           shortURL: `${process.env.BASE_URL}/${existing?.rows[0].short_code}`,
-         });
+      if (!cacheResult) {
+        console.log("CACHE MISS");
+
+        // checking if already in DB or not
+        const existing = await query(
+          `SELECT short_code FROM urls WHERE long_url = $1`,
+          [longURL],
+        );
+        
+        if ((existing?.rows.length as number) > 0) {
+          return res.status(200).json({
+            success: true,
+            shortURL: `${process.env.BASE_URL}/${existing?.rows[0].short_code}`,
+          });
+        }
+      } else {
+        console.log("CACHE HIT");
+
+        return res.status(200).json({
+          success: true,
+          shortURL: cacheResult,
+        });
       }
-
 
       //inserting into DB
       await saveToDB({
@@ -48,21 +63,23 @@ export const shortURL = async (req: Request, res: Response) => {
         longURL,
       });
 
+      //save new record to cache
+      await setToCache(result.shortCode, longURL);
 
       //response
-      const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT}`
+      const baseURL =
+        process.env.BASE_URL || `http://localhost:${process.env.PORT}`;
 
       return res.status(201).json({
         status: 201,
         success: true,
         msg: "long url is shortened and saved in DB",
-        shortURL: `${baseURL}/${result.shortCode}`
+        shortURL: `${baseURL}/${result.shortCode}`,
       });
-
-    } catch (error: any){
-      if(error.code === "23505"){
+    } catch (error: any) {
+      if (error.code === "23505") {
         attempts++;
-        continue
+        continue;
       }
 
       console.log("Error occuring while saving to DB", error);
@@ -70,10 +87,11 @@ export const shortURL = async (req: Request, res: Response) => {
   }
 };
 
-
 // REDIRECT to long url
 export const redirect = async (req: Request, res: Response) => {
   const { shortCode } = req.params;
+
+  //validate param: short code
   if (!shortCode) {
     return res.status(400).json({
       status: 400,
@@ -82,9 +100,16 @@ export const redirect = async (req: Request, res: Response) => {
     });
   }
 
+  // check cache to get redirect long url
+  const cacheResult = await getFromCache(String(shortCode));
 
-  // call db to get redirect long url
-  const result = await getFromDB(shortCode as string);
+  if (!cacheResult) {
+    console.log("CACHE MISS");
+
+    // call db to get redirect long url
+    const result = await getFromDB(shortCode as string);
+
+    //validate DB results
     if (result?.rows.length === 0) {
       return res.status(404).json({
         status: 404,
@@ -93,6 +118,11 @@ export const redirect = async (req: Request, res: Response) => {
       });
     }
 
-  // redirect
-  return res.redirect(302, result!.rows[0].long_url);
+    // redirect
+    return res.redirect(302, result!.rows[0].long_url);
+  } else {
+    console.log("CACHE HIT");
+
+    return res.redirect(302, cacheResult);
+  }
 };
