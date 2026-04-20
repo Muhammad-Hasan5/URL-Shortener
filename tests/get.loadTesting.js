@@ -3,7 +3,7 @@ import { clear } from "node:console";
 
 const run = async () => {
   const result = await autocannon({
-    url: "http://localhost:3000/NiSaiuNOp1",
+    url: "http://localhost:3000/NiSaiuNOp0",
     connections: 100,
     duration: 20,
     method: "GET",
