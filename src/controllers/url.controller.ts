@@ -30,7 +30,7 @@ export const shortURL = async (req: Request, res: Response) => {
       const result = generateShortCode();
 
       // checking if already in cache or not
-      const cacheResult = await getFromCache(result.shortCode);
+      const cacheResult = await getFromCache(`url:${result.shortCode}`);
 
       if (!cacheResult) {
         console.log("CACHE MISS");
@@ -64,7 +64,7 @@ export const shortURL = async (req: Request, res: Response) => {
       });
 
       //save new record to cache
-      await setToCache(result.shortCode, longURL);
+      setToCache(result.shortCode, longURL);
 
       //response
       const baseURL =
@@ -101,7 +101,7 @@ export const redirect = async (req: Request, res: Response) => {
   }
 
   // check cache to get redirect long url
-  const cacheResult = await getFromCache(String(shortCode));
+  const cacheResult = await getFromCache(`url:${String(shortCode)}`);
 
   if (!cacheResult) {
     console.log("CACHE MISS");
@@ -117,6 +117,9 @@ export const redirect = async (req: Request, res: Response) => {
         msg: "url not exist on DB",
       });
     }
+
+    //save to cache
+    setToCache(`url:${String(shortCode)}`, result!.rows[0].long_url);
 
     // redirect
     return res.redirect(302, result!.rows[0].long_url);
