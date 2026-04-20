@@ -96,8 +96,8 @@ Load testing was done using **autocannon**.
 
 | Metric       | Value     |
 | ------------ | --------- |
-| Requests/sec | ~320 ❌    |
-| Avg Latency  | ~300 ms ❌ |
+| Requests/sec | ~320      |
+| Avg Latency  | ~300 ms   |
 
 ### Problem
 
@@ -235,6 +235,6 @@ return redirect;
 
 This project evolved from a simple URL shortener into a **performance and systems design exercise**.
 
-> Building the system is only the first step — understanding its behavior under load is where real learning happens.
+> Building the system is only the first step, understanding its behavior under load is where real learning happens.
 
 ---
