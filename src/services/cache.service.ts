@@ -2,9 +2,9 @@ import redis from "../config/redis.js";
 
 const PREFIX = "url:"
 
-export async function setToCache(shortCode: string, longURL: string) {
+export function setToCache(shortCode: string, longURL: string) {
     try {
-        await redis.set(PREFIX + shortCode, longURL, "EX", 60 * 60 * 24)
+        redis.set(PREFIX + shortCode, longURL, "EX", 60 * 60 * 24)
     } catch (error: any) {
         console.log("error saving to cache", error);
     }
