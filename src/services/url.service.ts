@@ -1,4 +1,4 @@
-import generateID from "../utils/IDgenerator.js";
+import generateID from "./snowflakeID.service.js";
 
 type ShortCodeType = {
   id: bigint,

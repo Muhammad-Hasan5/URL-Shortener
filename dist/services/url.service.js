@@ -1,4 +1,4 @@
-import generateID from "../utils/IDgenerator.js";
+import generateID from "./snowflakeID.service.js";
 //short the url
 export const generateShortCode = () => {
     const id = generateID();
