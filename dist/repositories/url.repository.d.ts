@@ -1,4 +1,4 @@
-export declare const saveToDB: (result: {
+export declare const saveToDB: (newRecord: {
     id: string;
     shortCode: string;
     longURL: string;

@@ -1,14 +1,14 @@
 import { query } from "../db/index.js";
 // save in db
-export const saveToDB = async (result) => {
+export const saveToDB = async (newRecord) => {
     try {
         let queryText = `INSERT INTO urls (id, short_code, long_url) 
                     values ($1, $2, $3)
                     `;
         return await query(queryText, [
-            result.id,
-            result.shortCode,
-            result.longURL,
+            newRecord.id,
+            newRecord.shortCode,
+            newRecord.longURL,
         ]);
     }
     catch (error) {

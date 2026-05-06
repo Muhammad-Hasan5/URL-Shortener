@@ -1,7 +1,7 @@
 import { query } from "../db/index.js";
 
 // save in db
-export const saveToDB = async (result: {
+export const saveToDB = async (newRecord: {
   id: string;
   shortCode: string;
   longURL: string;
@@ -11,9 +11,9 @@ export const saveToDB = async (result: {
                     values ($1, $2, $3)
                     `;
     return await query(queryText, [
-      result.id,
-      result.shortCode,
-      result.longURL,
+      newRecord.id,
+      newRecord.shortCode,
+      newRecord.longURL,
     ]);
   } catch (error: any) {
     console.log("error saving to DB", error.stack);
