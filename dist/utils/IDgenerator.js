@@ -8,7 +8,6 @@ export default function generateID() {
     if (timestamp === lastTimestamp) {
         sequence = (sequence + 1n) & 0xfffn;
         if (sequence === 0n) {
-            timestamp = lastTimestamp;
             while (Date.now() <= lastTimestamp) { }
             timestamp = BigInt(Date.now());
         }
@@ -17,6 +16,6 @@ export default function generateID() {
         sequence = 0n;
     }
     lastTimestamp = timestamp;
-    return ((timestamp - BigInt(EPOCH)) << 22n) | (machineID << 22n) | sequence;
+    return ((timestamp - BigInt(EPOCH)) << 22n) | (machineID << 12n) | sequence;
 }
 //# sourceMappingURL=IDgenerator.js.map
