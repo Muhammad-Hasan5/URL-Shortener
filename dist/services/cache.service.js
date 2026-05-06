@@ -1,20 +1,15 @@
-import redis from "../config/redis.js";
-// prefix for key
-const PREFIX = "url:";
+import { setBreaker, getBreaker, } from "../utils/cache_circuit_breaker/cacheCircuitBreaker.js";
+import {} from "../config/redis/cache.redis.js";
 // saving to cache
 export function setToCache(cacheRecord) {
-    try {
-        redis.set(PREFIX + cacheRecord.shortCode, cacheRecord.longURL, "EX", 60 * 60 * 24);
-    }
-    catch (error) {
-        console.log("error saving to cache", error);
-    }
+    setBreaker.fire(cacheRecord).catch((err) => {
+        console.log("Cache set failed:", err.message);
+    });
 }
 // getting from cache
 export async function getFromCache(shortCode) {
     try {
-        const res = await redis.get(PREFIX + shortCode);
-        return res;
+        return await getBreaker.fire(shortCode);
     }
     catch (error) {
         console.log("Error fetching from cache", error);

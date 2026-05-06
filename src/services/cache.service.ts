@@ -1,38 +1,23 @@
-import redis from "../config/redis.js";
-
-// new cache record type
-type cacheRecordType = {
-  shortCode: string;
-  longURL: string;
-};
-
-// short code type
-type shortCodeType = string;
-
-// prefix for key
-const PREFIX = "url:";
+import {
+  setBreaker,
+  getBreaker,
+} from "../utils/cache_circuit_breaker/cacheCircuitBreaker.js";
+import {
+  type cacheRecordType,
+  type shortCodeType,
+} from "../config/redis/cache.redis.js";
 
 // saving to cache
 export function setToCache(cacheRecord: cacheRecordType): void {
-  try {
-    redis.set(
-      PREFIX + cacheRecord.shortCode,
-      cacheRecord.longURL,
-      "EX",
-      60 * 60 * 24,
-    );
-  } catch (error: any) {
-    console.log("error saving to cache", error);
-  }
+  setBreaker.fire(cacheRecord).catch((err: any) => {
+    console.log("Cache set failed:", err.message);
+  });
 }
 
 // getting from cache
-export async function getFromCache(
-  shortCode: shortCodeType,
-): Promise<string | null> {
+export async function getFromCache(shortCode: shortCodeType): Promise<any> {
   try {
-    const res = await redis.get(PREFIX + shortCode);
-    return res;
+    return await getBreaker.fire(shortCode);
   } catch (error: any) {
     console.log("Error fetching from cache", error);
     return null;
