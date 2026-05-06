@@ -40,7 +40,7 @@ export const shortURL = async (req: Request, res: Response) => {
           `SELECT short_code FROM urls WHERE long_url = $1`,
           [longURL],
         );
-        
+
         if ((existing?.rows.length as number) > 0) {
           return res.status(200).json({
             success: true,
@@ -64,7 +64,7 @@ export const shortURL = async (req: Request, res: Response) => {
       });
 
       //save new record to cache
-      setToCache(result.shortCode, longURL);
+      setToCache({ shortCode: result.shortCode, longURL });
 
       //response
       const baseURL =
@@ -119,7 +119,10 @@ export const redirect = async (req: Request, res: Response) => {
     }
 
     //save to cache
-    setToCache(`url:${String(shortCode)}`, result!.rows[0].long_url);
+    setToCache({
+      shortCode: `url:${String(shortCode)}`,
+      longURL: result!.rows[0].long_url,
+    });
 
     // redirect
     return res.redirect(302, result!.rows[0].long_url);

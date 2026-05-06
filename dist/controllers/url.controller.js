@@ -50,7 +50,7 @@ export const shortURL = async (req, res) => {
                 longURL,
             });
             //save new record to cache
-            setToCache(result.shortCode, longURL);
+            setToCache({ shortCode: result.shortCode, longURL });
             //response
             const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT}`;
             return res.status(201).json({
@@ -95,7 +95,10 @@ export const redirect = async (req, res) => {
             });
         }
         //save to cache
-        setToCache(`url:${String(shortCode)}`, result.rows[0].long_url);
+        setToCache({
+            shortCode: `url:${String(shortCode)}`,
+            longURL: result.rows[0].long_url,
+        });
         // redirect
         return res.redirect(302, result.rows[0].long_url);
     }
