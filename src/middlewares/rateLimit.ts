@@ -7,7 +7,6 @@ import { RedisStore, type RedisReply } from "rate-limit-redis";
 const windowMs = Number(process.env.RATE_LIMIT_WINDOWSMS);
 const maxReq = Number(process.env.RATE_LIMIT_MAX_REQUESTS);
 
-/* express-rate-limt => sliding window algo */
 
 const limiter: RateLimitRequestHandler = rateLimit({
   windowMs,

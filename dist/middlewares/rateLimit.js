@@ -4,7 +4,6 @@ import redis from "../config/redis/index.redis.js";
 import { RedisStore } from "rate-limit-redis";
 const windowMs = Number(process.env.RATE_LIMIT_WINDOWSMS);
 const maxReq = Number(process.env.RATE_LIMIT_MAX_REQUESTS);
-/* express-rate-limt => sliding window algo */
 const limiter = rateLimit({
     windowMs,
     limit: maxReq,

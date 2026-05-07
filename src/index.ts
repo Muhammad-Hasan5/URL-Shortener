@@ -1,4 +1,4 @@
-process.loadEnvFile()
+process.loadEnvFile();
 
 import app from "./app.js";
 import { PgPool } from "./db/index.js";
@@ -11,7 +11,7 @@ const server = app.listen(process.env.PORT, () => {
 process.on("SIGTERM", async (): Promise<any> => {
   server.close(async () => {
     await PgPool.end();
-    await redis.quit()
-    process.exit(0)
-  })
-})
+    await redis.quit();
+    process.exit(0);
+  });
+});
