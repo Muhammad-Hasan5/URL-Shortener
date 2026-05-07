@@ -1,9 +1,31 @@
 import { Pool } from "pg";
 process.loadEnvFile();
-console.log(process.env.connectionString);
 export const PgPool = new Pool({
     connectionString: String(process.env.connectionString),
 });
+//ready check method
+export const checkPoolReady = async () => {
+    try {
+        await PgPool.query("SELECT 1");
+        console.log("DB-pg pool ready");
+        return true;
+    }
+    catch (error) {
+        console.error("DB-pg pool not ready", error);
+        return false;
+    }
+};
+//general query function
+export const query = async (queryText, values) => {
+    try {
+        return await PgPool.query(queryText, values);
+    }
+    catch (error) {
+        console.log("error fetching data", error.stack);
+    }
+};
+// DB queries:
+// table creation
 const createTable = async () => {
     try {
         const query = `
@@ -26,12 +48,4 @@ const createTable = async () => {
     }
 };
 await createTable();
-export const query = async (queryText, values) => {
-    try {
-        return await PgPool.query(queryText, values);
-    }
-    catch (error) {
-        console.log("error fetching data", error.stack);
-    }
-};
 //# sourceMappingURL=index.js.map

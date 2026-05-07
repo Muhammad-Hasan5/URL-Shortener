@@ -1,13 +1,34 @@
 import { Pool } from "pg";
 
-process.loadEnvFile()
-
-console.log(process.env.connectionString!);
+process.loadEnvFile();
 
 export const PgPool = new Pool({
   connectionString: String(process.env.connectionString),
 });
 
+//ready check method
+export const checkPoolReady = async (): Promise<boolean> => {
+  try {
+    await PgPool.query("SELECT 1");
+    console.log("DB-pg pool ready");
+    return true;
+  } catch (error: any) {
+    console.error("DB-pg pool not ready", error);
+    return false;
+  }
+};
+
+//general query function
+export const query = async (queryText: string, values?: any[]) => {
+  try {
+    return await PgPool.query(queryText, values);
+  } catch (error: any) {
+    console.log("error fetching data", error.stack);
+  }
+};
+
+// DB queries:
+// table creation
 const createTable = async () => {
   try {
     const query = `
@@ -22,7 +43,7 @@ const createTable = async () => {
 
     // create index on short_code
     const indexQuery = `CREATE INDEX IF NOT EXISTS idx_long_url 
-                        ON urls (long_url)`
+                        ON urls (long_url)`;
     await PgPool.query(indexQuery);
 
     console.log("Table created successfully with indexes");
@@ -33,10 +54,4 @@ const createTable = async () => {
 
 await createTable();
 
-export const query = async (queryText: string, values?: any[]) => {
-  try {
-    return await PgPool.query(queryText, values);
-  } catch (error: any) {
-    console.log("error fetching data", error.stack);
-  } 
-};
+
