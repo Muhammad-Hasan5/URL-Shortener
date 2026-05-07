@@ -15,6 +15,7 @@ export const checkPoolReady = async () => {
         return false;
     }
 };
+// DB queries:
 //general query function
 export const query = async (queryText, values) => {
     try {
@@ -24,7 +25,6 @@ export const query = async (queryText, values) => {
         console.log("error fetching data", error.stack);
     }
 };
-// DB queries:
 // table creation
 const createTable = async () => {
     try {

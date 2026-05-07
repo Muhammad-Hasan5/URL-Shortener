@@ -7,12 +7,14 @@ import {
   type shortCodeType,
 } from "../config/redis/cache.redis.js";
 
+
 // saving to cache
 export function setToCache(cacheRecord: cacheRecordType): void {
   setBreaker.fire(cacheRecord).catch((err: any) => {
     console.log("Cache set failed:", err.message);
   });
 }
+
 
 // getting from cache
 export async function getFromCache(shortCode: shortCodeType): Promise<any> {

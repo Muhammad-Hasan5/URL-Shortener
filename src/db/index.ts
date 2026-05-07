@@ -1,10 +1,13 @@
 import { Pool } from "pg";
 
+
 process.loadEnvFile();
+
 
 export const PgPool = new Pool({
   connectionString: String(process.env.connectionString),
 });
+
 
 //ready check method
 export const checkPoolReady = async (): Promise<boolean> => {
@@ -18,6 +21,8 @@ export const checkPoolReady = async (): Promise<boolean> => {
   }
 };
 
+
+// DB queries:
 //general query function
 export const query = async (queryText: string, values?: any[]) => {
   try {
@@ -27,7 +32,7 @@ export const query = async (queryText: string, values?: any[]) => {
   }
 };
 
-// DB queries:
+
 // table creation
 const createTable = async () => {
   try {
