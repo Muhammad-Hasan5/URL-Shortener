@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 process.loadEnvFile();
 console.log(process.env.connectionString);
-const pool = new Pool({
+export const PgPool = new Pool({
     connectionString: String(process.env.connectionString),
 });
 const createTable = async () => {
@@ -14,11 +14,11 @@ const createTable = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
-        await pool.query(query);
+        await PgPool.query(query);
         // create index on short_code
         const indexQuery = `CREATE INDEX IF NOT EXISTS idx_long_url 
                         ON urls (long_url)`;
-        await pool.query(indexQuery);
+        await PgPool.query(indexQuery);
         console.log("Table created successfully with indexes");
     }
     catch (error) {
@@ -28,7 +28,7 @@ const createTable = async () => {
 await createTable();
 export const query = async (queryText, values) => {
     try {
-        return await pool.query(queryText, values);
+        return await PgPool.query(queryText, values);
     }
     catch (error) {
         console.log("error fetching data", error.stack);
