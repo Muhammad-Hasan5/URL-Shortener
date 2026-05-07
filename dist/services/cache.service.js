@@ -1,4 +1,4 @@
-import { setBreaker, getBreaker, } from "../utils/cache_circuit_breaker/cacheCircuitBreaker.js";
+import { setBreaker, getBreaker, } from "../config/opossum/cacheCircuitBreaker.js";
 import {} from "../config/redis/cache.redis.js";
 // saving to cache
 export function setToCache(cacheRecord) {

@@ -1,5 +1,5 @@
 import createBreaker from "./index.js";
-import { set, get } from "../../config/redis/cache.redis.js";
+import { set, get } from "../redis/cache.redis.js";
 
 // creating breakers
 export const setBreaker = createBreaker(set);

@@ -1,7 +1,7 @@
 import {
   setBreaker,
   getBreaker,
-} from "../utils/cache_circuit_breaker/cacheCircuitBreaker.js";
+} from "../config/opossum/cacheCircuitBreaker.js";
 import {
   type cacheRecordType,
   type shortCodeType,
