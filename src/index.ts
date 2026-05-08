@@ -1,14 +1,16 @@
-process.loadEnvFile();
-
 import app from "./app.js";
-import { PgPool } from "./db/index.js";
+import { PgPool } from "./config/db/index.db.js";
 import redis from "./config/redis/index.redis.js";
+import logger from "./config/pino-logging/index.pino.js";
+import env from "./config/env.js";
 
-const server = app.listen(process.env.PORT, () => {
-  console.log(`App is running on port http://localhost:${process.env.PORT}`);
+const server = app.listen(env.data?.PORT, () => {
+  logger.info(`App is running on port ${env.data?.BASE_URL}:${env.data?.PORT}`);
 });
 
 process.on("SIGTERM", async (): Promise<any> => {
+  logger.info("closing system");
+
   server.close(async () => {
     await PgPool.end();
     await redis.quit();
