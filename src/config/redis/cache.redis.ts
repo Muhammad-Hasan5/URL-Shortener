@@ -1,19 +1,12 @@
+import logger from "../pino-logging/index.pino.js";
 import redis from "./index.redis.js";
-
-// new cache record type
-export type cacheRecordType = {
-  shortCode: string;
-  longURL: string;
-};
-
-// short code type
-export type shortCodeType = string;
+import type { CacheRecordType } from "../../@types/cache/index.types.js";
 
 // prefix for key
 const PREFIX = "url:";
 
 // saving to cache
-export function set(cacheRecord: cacheRecordType): void {
+export function set(cacheRecord: CacheRecordType): void {
   try {
     redis.set(
       PREFIX + cacheRecord.shortCode,
@@ -22,17 +15,19 @@ export function set(cacheRecord: cacheRecordType): void {
       60 * 60 * 24,
     );
   } catch (error: any) {
-    console.log("error saving to cache", error);
+    logger.error("error saving to cache", error);
   }
 }
 
 // getting from cache
-export async function get(shortCode: shortCodeType): Promise<string | null> {
+export async function get(
+  shortCode: string,
+): Promise<string | null> {
   try {
     const res = await redis.get(PREFIX + shortCode);
     return res;
   } catch (error: any) {
-    console.log("Error fetching from cache", error);
+    logger.error("Error fetching from cache", error);
     return null;
   }
 }
