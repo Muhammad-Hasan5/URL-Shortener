@@ -1,3 +1,5 @@
+import logger from "../config/pino-logging/index.pino.js";
+
 let EPOCH = 1700000000000;
 
 let timestamp: bigint = 0n;
@@ -23,5 +25,10 @@ export default function generateID(): bigint {
 
   lastTimestamp = timestamp;
 
-  return ((timestamp - BigInt(EPOCH)) << 22n) | (machineID << 12n) | sequence;
+  const snowfalke_ID =
+    ((timestamp - BigInt(EPOCH)) << 22n) | (machineID << 12n) | sequence;
+
+  logger.info({ snowfalke_ID }, "snowflake id created successfully");
+  
+  return snowfalke_ID;
 }
