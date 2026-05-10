@@ -64,9 +64,15 @@ const createIndex = async () => {
 
     const idx_active_shortCodes = `CREATE INDEX IF NOT EXISTS idx_active_short_codes ON urls (short_code) WHERE deleted_at IS NULL`;
 
-    await PgPool.query(idx_long_url);
-    await PgPool.query(idx_active_shortCodes);
-    logger.info("Indexes created successfully");
+    const response = await Promise.all([
+      PgPool.query(idx_long_url),
+      PgPool.query(idx_active_shortCodes),
+    ]);
+
+    logger.info(
+      { IndexQueryResponse: response },
+      "Indexes created successfully",
+    );
   } catch (error: any) {
     logger.error("error creating index", error.stack);
   }
