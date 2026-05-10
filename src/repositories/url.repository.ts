@@ -1,5 +1,5 @@
 import type { QueryResult } from "pg";
-import { query } from "../config/db/index.db.js";
+import { query } from "../config/db/queries.db.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { type NewRecordType } from "../@types/db-record/index.types.js";
 
