@@ -1,6 +1,5 @@
 import { PgPool } from "./index.db.js";
-import logger from "../pino-logging/index.pino.js";
-
+import logger from "../config/pino-logging/index.pino.js";
 
 // DB queries:
 //general query function
@@ -23,6 +22,7 @@ const createTable = async () => {
         click_count INT DEFAULT 0,
         expires_at TIMESTAMP NULL,
         deleted_at TIMESTAMP NULL,
+        last_accessed_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;

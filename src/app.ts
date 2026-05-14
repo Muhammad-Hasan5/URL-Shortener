@@ -2,7 +2,7 @@ import express from "express";
 import router from "./routes/url.route.js";
 import { logRequestID } from "./middlewares/logRequestID.middleware.js";
 
-import { checkPoolReady } from "./config/db/index.db.js";
+import { checkPoolReady } from "./db/index.db.js";
 import redis from "./config/redis/index.redis.js";
 
 import register from "./config/prometheus-metrics/index.prometheus.js";

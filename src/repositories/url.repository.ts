@@ -1,8 +1,7 @@
 import type { QueryResult } from "pg";
-import { query } from "../config/db/queries.db.js";
+import { query } from "../db/queries.db.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { type NewRecordType } from "../@types/db-record/index.types.js";
-
 
 // save in db
 export const saveToDB = async (

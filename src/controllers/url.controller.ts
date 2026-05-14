@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { generateShortCode } from "../services/shortCode.service.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
-import { query } from "../config/db/queries.db.js";
+import { query } from "../db/queries.db.js";
 import { setToCache, getFromCache } from "../services/cache.service.js";
 import logger from "../config/pino-logging/index.pino.js";
 import {

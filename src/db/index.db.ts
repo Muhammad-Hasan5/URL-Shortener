@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 
-import logger from "../pino-logging/index.pino.js";
-import env from "../env.js";
+import logger from "../config/pino-logging/index.pino.js";
+import env from "../config/env.js";
 
 export const PgPool = new Pool({
   connectionString: String(env.data?.PG_CONNECTION_STRING),
@@ -24,5 +24,3 @@ export const checkPoolReady = async (): Promise<boolean> => {
     return false;
   }
 };
-
-

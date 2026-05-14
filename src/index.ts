@@ -1,5 +1,5 @@
 import app from "./app.js";
-import { PgPool } from "./config/db/index.db.js";
+import { PgPool } from "./db/index.db.js";
 import redis from "./config/redis/index.redis.js";
 import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
