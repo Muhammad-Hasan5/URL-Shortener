@@ -1,4 +1,4 @@
-import { PgPool } from "./index.db.js";
+import { PgPool } from "./pool.db.js";
 import logger from "../config/pino-logging/index.pino.js";
 
 // DB queries:
@@ -10,4 +10,3 @@ export const query = async (queryText: string, values?: any[]) => {
     logger.error("error fetching data", error.stack);
   }
 };
-
