@@ -2,7 +2,11 @@ import type { Request, Response } from "express";
 import { generateShortCode } from "../services/shortCode.service.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
 import { query } from "../db/queries.db.js";
-import { setToCache, getFromCache } from "../services/cache.service.js";
+import {
+  setToCache,
+  getFromCache,
+  incClickCount,
+} from "../services/cache.service.js";
 import logger from "../config/pino-logging/index.pino.js";
 import {
   cacheRequests,
@@ -219,7 +223,7 @@ export const redirect = async (req: Request, res: Response) => {
     route: "redirect-to-longURL-route",
   });
 
-  const { shortCode } = req.params;
+  const shortCode  = req.params.shortCode;
 
   //validate param: short code
   if (!shortCode) {
@@ -290,6 +294,9 @@ export const redirect = async (req: Request, res: Response) => {
         "redirect-to-longURL.unsuccessful",
       );
 
+      // incrementing click count
+      await incClickCount(shortCode as string)
+
       return res.status(404).json({
         status: 404,
         success: false,
@@ -341,6 +348,9 @@ export const redirect = async (req: Request, res: Response) => {
       },
       "redirect-to-longURL.cache_hit",
     );
+
+    // incrementing click count
+    await incClickCount(shortCode as string)
 
     return res.redirect(302, cacheResult);
   }
