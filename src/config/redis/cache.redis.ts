@@ -20,9 +20,7 @@ export function set(cacheRecord: CacheRecordType): void {
 }
 
 // getting from cache
-export async function get(
-  shortCode: string,
-): Promise<string | null> {
+export async function get(shortCode: string): Promise<string | null> {
   try {
     const res = await redis.get(PREFIX + shortCode);
     return res;
@@ -30,4 +28,14 @@ export async function get(
     logger.error("Error fetching from cache", error);
     return null;
   }
+}
+
+export async function incr(shortCode: string): Promise<void> {
+  await redis.incr(`urls:click:${shortCode}`, (err: any, newValue: number | undefined) => {
+    if (err) {
+      logger.error(`error incrementing for ${shortCode}`, err);
+    } else {
+      logger.info(`increment successful ${newValue}`);
+    }
+  });
 }
