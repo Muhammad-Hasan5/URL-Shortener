@@ -60,7 +60,7 @@ async function flushClickCount(): Promise<void> {
   logger.info(
     {
       flushedKeys: updates.length,
-      totalClicks: deltas.reduce((a, b) => a + b, 0),
+      totalClicks: deltas.reduce((acc, curr) => acc + curr, 0),
       durationMS: Date.now() - start,
     },
     "clickFlush.job.complete",
