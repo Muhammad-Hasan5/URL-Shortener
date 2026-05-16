@@ -12,6 +12,7 @@ import {
   cacheRequests,
   requestDuration,
 } from "../config/prometheus-metrics/index.prometheus.js";
+import { getTTL } from "../utils/cacheTTL.js";
 import env from "../config/env.js";
 
 // covnert long url to SHORT one
@@ -154,8 +155,10 @@ export const shortURL = async (req: Request, res: Response) => {
 
       logger.info({ checkPoint_cache: "starting saving to cache" });
 
+      const TTL = getTTL(0, new Date(Date.now()));
+
       //save new record to cache
-      await setToCache({ shortCode: result.shortCode, longURL });
+      await setToCache({ shortCode: result.shortCode, longURL, EXPIRY: TTL });
 
       logger.info({ checkPoint_cache: "saved to cache (maybe)" });
 
@@ -223,7 +226,7 @@ export const redirect = async (req: Request, res: Response) => {
     route: "redirect-to-longURL-route",
   });
 
-  const shortCode  = req.params.shortCode;
+  const shortCode = req.params.shortCode;
 
   //validate param: short code
   if (!shortCode) {
@@ -295,7 +298,7 @@ export const redirect = async (req: Request, res: Response) => {
       );
 
       // incrementing click count
-      await incClickCount(shortCode as string)
+      await incClickCount(shortCode as string);
 
       return res.status(404).json({
         status: 404,
@@ -306,10 +309,15 @@ export const redirect = async (req: Request, res: Response) => {
 
     logger.info({ checkPoint_cache: "starting to save to cache" });
 
+    const clickCount = result?.rows[0].click_count;
+    const created_at = result?.rows[0].created_at;
+    const TTL = getTTL(Number(clickCount), new Date(created_at));
+
     //save to cache
     await setToCache({
       shortCode: `url:${String(shortCode)}`,
-      longURL: result!.rows[0].long_url,
+      longURL: result?.rows[0].long_url,
+      EXPIRY: TTL,
     });
 
     logger.info({
@@ -350,7 +358,7 @@ export const redirect = async (req: Request, res: Response) => {
     );
 
     // incrementing click count
-    await incClickCount(shortCode as string)
+    await incClickCount(shortCode as string);
 
     return res.redirect(302, cacheResult);
   }
