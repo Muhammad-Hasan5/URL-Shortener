@@ -6,9 +6,9 @@ import type { CacheRecordType } from "../../@types/cache/index.types.js";
 const PREFIX = "url:";
 
 // saving to cache
-export function set(cacheRecord: CacheRecordType): void {
+export async function set(cacheRecord: CacheRecordType): Promise<void> {
   try {
-    redis.set(
+    await redis.set(
       PREFIX + cacheRecord.shortCode,
       cacheRecord.longURL,
       "EX",
@@ -30,6 +30,7 @@ export async function get(shortCode: string): Promise<string | null> {
   }
 }
 
+// icrementing click count
 export async function incr(shortCode: string): Promise<void> {
   await redis.incr(`urls:click:${shortCode}`, (err: any, newValue: number | undefined) => {
     if (err) {

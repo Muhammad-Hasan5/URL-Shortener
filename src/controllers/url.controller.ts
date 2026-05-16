@@ -155,7 +155,7 @@ export const shortURL = async (req: Request, res: Response) => {
       logger.info({ checkPoint_cache: "starting saving to cache" });
 
       //save new record to cache
-      setToCache({ shortCode: result.shortCode, longURL });
+      await setToCache({ shortCode: result.shortCode, longURL });
 
       logger.info({ checkPoint_cache: "saved to cache (maybe)" });
 
@@ -307,7 +307,7 @@ export const redirect = async (req: Request, res: Response) => {
     logger.info({ checkPoint_cache: "starting to save to cache" });
 
     //save to cache
-    setToCache({
+    await setToCache({
       shortCode: `url:${String(shortCode)}`,
       longURL: result!.rows[0].long_url,
     });

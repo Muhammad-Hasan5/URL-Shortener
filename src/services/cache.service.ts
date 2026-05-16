@@ -7,8 +7,8 @@ import logger from "../config/pino-logging/index.pino.js";
 import { type CacheRecordType } from "../@types/cache/index.types.js";
 
 // saving to cache
-export function setToCache(cacheRecord: CacheRecordType): void {
-  setBreaker.fire(cacheRecord).catch((err: any) => {
+export async function setToCache(cacheRecord: CacheRecordType): Promise<void> {
+  await setBreaker.fire(cacheRecord).catch((err: any) => {
     logger.error("Cache set failed:", err.message);
   });
 }
