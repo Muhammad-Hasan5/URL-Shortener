@@ -12,7 +12,7 @@ export async function set(cacheRecord: CacheRecordType): Promise<void> {
       PREFIX + cacheRecord.shortCode,
       cacheRecord.longURL,
       "EX",
-      60 * 60 * 24,
+      cacheRecord.EXPIRY,
     );
   } catch (error: any) {
     logger.error("error saving to cache", error);
