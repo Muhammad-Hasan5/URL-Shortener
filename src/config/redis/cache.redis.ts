@@ -32,7 +32,7 @@ export async function get(shortCode: string): Promise<string | null> {
 
 // icrementing click count
 export async function incr(shortCode: string): Promise<void> {
-  await redis.incr(`urls:click:${shortCode}`, (err: any, newValue: number | undefined) => {
+  await redis.incr(`url:clicks:${shortCode}`, (err: any, newValue: number | undefined) => {
     if (err) {
       logger.error(`error incrementing for ${shortCode}`, err);
     } else {
