@@ -1,9 +1,9 @@
-import generateID from "./snowflakeID.service.js";
+import generateID from "./snowflakeID.utils.js";
 import z from "zod";
 
-const shortCodeSchema = z.object({ 
-  id: z.bigint(), 
-  shortCode: z.string() 
+const shortCodeSchema = z.object({
+  id: z.bigint(),
+  shortCode: z.string(),
 });
 
 type ShortCodeType = z.infer<typeof shortCodeSchema>;
