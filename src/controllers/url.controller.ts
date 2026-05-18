@@ -6,13 +6,15 @@ import {
   setToCache,
   getFromCache,
   incClickCount,
+  updateTTL,
+  ttl
 } from "../services/cache.service.js";
 import logger from "../config/pino-logging/index.pino.js";
 import {
   cacheRequests,
   requestDuration,
 } from "../config/prometheus-metrics/index.prometheus.js";
-import { getTTL } from "../utils/cacheTTL.js";
+import { getTTL, shouldRefresh } from "../utils/cacheTTL.js";
 import env from "../config/env.js";
 
 // covnert long url to SHORT one
@@ -23,7 +25,7 @@ export const shortURL = async (req: Request, res: Response) => {
     route: "url-shortener-route",
   });
 
-  const { longURL } = req.body;
+  const { longURL, expires_at } = req.body;
 
   //validate long url
   try {
@@ -69,8 +71,8 @@ export const shortURL = async (req: Request, res: Response) => {
 
       logger.info({ checkPoint_cache: "starting getting from cache" });
 
-      // checking if already in cache or not
-      const cacheResult = await getFromCache(`url:${result.shortCode}`);
+      // checking if already in cache or not, escaping duplication
+      const cacheResult = await getFromCache(result.shortCode);
 
       if (!cacheResult) {
         /* cache hit-miss counter */
@@ -136,19 +138,32 @@ export const shortURL = async (req: Request, res: Response) => {
           "short-a-url.cache_hit",
         );
 
+        //refreshing ttl if near to expire
+        const remainingTtl = await ttl(cacheResult.shortCode)
+        
+        if(shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)){
+          const freshTtl = getTTL(cacheResult.clickCount, new Date(cacheResult.createdAt))
+          await updateTTL(cacheResult.shortCode, freshTtl)
+        }
+
         return res.status(200).json({
           success: true,
-          shortURL: cacheResult,
+          data: cacheResult,
         });
       }
 
       logger.info({ checkPoint_DB: "starting saving to database" });
+
+      //TODO add auth
+      //const date = new Date()
+      //const expiryDate = date.setDate(date.getDate() + 1)
 
       //inserting into DB
       await saveToDB({
         id: result.id.toString(),
         shortCode: result.shortCode,
         longURL,
+        expires_at: new Date(expires_at),
       });
 
       logger.info({ checkPoint_DB: "saved to database" });
@@ -158,7 +173,14 @@ export const shortURL = async (req: Request, res: Response) => {
       const TTL = getTTL(0, new Date(Date.now()));
 
       //save new record to cache
-      await setToCache({ shortCode: result.shortCode, longURL, EXPIRY: TTL });
+      await setToCache({
+        shortCode: result.shortCode,
+        longURL,
+        clickCount: 0,
+        createdAt: new Date(Date.now()).toISOString(),
+        expiresAt: new Date(expires_at).toISOString(),
+        cachedTtl: TTL,
+      });
 
       logger.info({ checkPoint_cache: "saved to cache (maybe)" });
 
@@ -297,9 +319,6 @@ export const redirect = async (req: Request, res: Response) => {
         "redirect-to-longURL.unsuccessful",
       );
 
-      // incrementing click count
-      await incClickCount(shortCode as string);
-
       return res.status(404).json({
         status: 404,
         success: false,
@@ -317,7 +336,10 @@ export const redirect = async (req: Request, res: Response) => {
     await setToCache({
       shortCode: `url:${String(shortCode)}`,
       longURL: result?.rows[0].long_url,
-      EXPIRY: TTL,
+      clickCount,
+      createdAt: created_at,
+      expiresAt: result?.rows[0].expires_at,
+      cachedTtl: TTL,
     });
 
     logger.info({
@@ -345,7 +367,7 @@ export const redirect = async (req: Request, res: Response) => {
     /* cache hit-miss counter */
     cacheRequests.inc({ result: "hit", cache_method: "get" });
 
-    //logging cache-miss
+    //logging cache-hit
     logger.info(
       {
         id: req.id,
@@ -359,6 +381,17 @@ export const redirect = async (req: Request, res: Response) => {
 
     // incrementing click count
     await incClickCount(shortCode as string);
+
+    //refreshing ttl if near to expire
+    const remainingTtl = await ttl(cacheResult.shortCode);
+
+    if (shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
+      const freshTtl = getTTL(
+        cacheResult.clickCount,
+        new Date(cacheResult.createdAt),
+      );
+      await updateTTL(cacheResult.shortCode, freshTtl);
+    }
 
     return res.redirect(302, cacheResult);
   }
