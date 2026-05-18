@@ -8,6 +8,7 @@ import redis from "./config/redis/index.redis.js";
 import register from "./config/prometheus-metrics/index.prometheus.js";
 
 import logger from "./config/pino-logging/index.pino.js";
+import { requestLogger } from "./middlewares/requestLogger.middleware.js";
 
 const app: express.Application = express();
 
@@ -17,10 +18,13 @@ app.use(express.urlencoded({ limit: "5mb", extended: true }));
 //middleware to attach requestid for each
 // log to Global Request of express
 app.use(logRequestID);
+app.use(requestLogger)
 
-// rate limiter middleware for POST endpoints
+//attaching router to app
 app.use("/", router);
 
+
+//TODO create a separate controllers & route for health checkpoints
 // health check end point
 app.get("/health/live", (req, res) => {
   res.status(200).json({
