@@ -2,7 +2,7 @@ const TTL = {
   NEW: 5 * 60,
   COLD: 10 * 60,
   WARM: 60 * 60,
-  HOT: 24 * 60,
+  HOT: 24 * 60 * 60,
 } as const;
 
 const AGE_THRESHOLD_MS = 5 * 60 * 1000;
@@ -19,4 +19,13 @@ export function getTTL(clickCount: number, created_at: Date): number {
   if (clickCount > 0) return TTL.COLD;
 
   return TTL.NEW;
+}
+
+export function shouldRefresh(remainingTtl: number, originalTtl: number, beta = 1.0): boolean {
+  if(remainingTtl < 0) return true;
+
+  const fractionRemaining = remainingTtl / originalTtl;
+  const refreshProbability = Math.pow(fractionRemaining, 1 / beta)
+
+  return Math.random() < refreshProbability;
 }
