@@ -21,7 +21,7 @@ export async function set(cacheRecord: CacheRecordType): Promise<void> {
 }
 
 // getting from cache
-export async function get(shortCode: string): Promise<string | null> {
+export async function get(shortCode: string): Promise<any> {
   try {
     const res = await redis.get(SETGET_PREFIX + shortCode);
     return JSON.parse(res!);
