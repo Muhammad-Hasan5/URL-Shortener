@@ -1,3 +1,5 @@
+import { ttl, updateTTL } from "../repositories/cache.repository.js";
+
 const TTL = {
   NEW: 5 * 60,
   COLD: 10 * 60,
@@ -21,11 +23,27 @@ export function getTTL(clickCount: number, created_at: Date): number {
   return TTL.NEW;
 }
 
-export function shouldRefresh(remainingTtl: number, originalTtl: number, beta = 1.0): boolean {
-  if(remainingTtl < 0) return true;
+function _shouldRefresh(
+  remainingTtl: number,
+  originalTtl: number,
+  beta = 1.0,
+): boolean {
+  if (remainingTtl < 0) return true;
 
   const fractionRemaining = remainingTtl / originalTtl;
-  const refreshProbability = Math.pow(fractionRemaining, 1 / beta)
+  const refreshProbability = Math.pow(fractionRemaining, 1 / beta);
 
   return Math.random() < refreshProbability;
+}
+
+export async function refreshTtl(cacheResult: any) {
+  const remainingTtl = await ttl(cacheResult.shortCode);
+
+  if (_shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
+    const freshTtl = getTTL(
+      cacheResult.clickCount,
+      new Date(cacheResult.createdAt),
+    );
+    await updateTTL(cacheResult.shortCode, freshTtl);
+  }
 }
