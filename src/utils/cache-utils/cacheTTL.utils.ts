@@ -1,4 +1,4 @@
-import { ttl, updateTTL } from "../repositories/cache.repository.js";
+import { ttl, updateTTL } from "../../repositories/cache.repository.js";
 
 const TTL = {
   NEW: 5 * 60,
