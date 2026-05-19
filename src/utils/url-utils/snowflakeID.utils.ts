@@ -1,4 +1,4 @@
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../../config/pino-logging/index.pino.js";
 
 let EPOCH = 1700000000000;
 
