@@ -1,5 +1,5 @@
-import { cacheRequests } from "../config/prometheus-metrics/index.prometheus.js";
-import logger from "../config/pino-logging/index.pino.js";
+import { cacheRequests } from "../../config/prometheus-metrics/index.prometheus.js";
+import logger from "../../config/pino-logging/index.pino.js";
 
 interface ILogObject {
   reqId: any;
