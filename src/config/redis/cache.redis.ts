@@ -6,6 +6,8 @@ import type { CacheRecordType } from "../../@types/cache/index.types.js";
 const SETGET_PREFIX = "url:";
 const INCR_PREFIX = "url:clicks:";
 
+//TODO convert key value to hash set in redis
+
 // saving to cache
 export async function set(cacheRecord: CacheRecordType): Promise<void> {
   try {
