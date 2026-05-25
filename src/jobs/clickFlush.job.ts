@@ -1,6 +1,7 @@
 import { query } from "../db/queries.db.js";
 import redis from "../config/redis/index.redis.js";
 import logger from "../config/pino-logging/index.pino.js";
+import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
 
 const FLUSH_INTERVAL_MS = 60_000;
 const KEY_PATTERN = "url:click:*";
@@ -9,11 +10,11 @@ async function flushClickCount(): Promise<void> {
   const start = Date.now(); // timer: how much time to flush
 
   //fetched all the keys of matching pattern
-  const keys = await redis.keys(KEY_PATTERN);
+  const keys = await safeRedis(async () => await redis.keys(KEY_PATTERN));
 
   // if no keys found => no flush
-  if (keys.length == 0) {
-    logger.info("clickFlush.job: no keys of such pattern are there");
+  if (!keys || keys?.length == 0) {
+    logger.info("clickFlush.job: no keys of such pattern are there || no keys are there");
     return;
   }
 
@@ -25,7 +26,7 @@ async function flushClickCount(): Promise<void> {
   }
 
   //executing all the commands in pipeline
-  const results = await pipeline.exec();
+  const results = await safeRedis(async () => await pipeline.exec());
 
   const updates: { shortCode: string; delta: number }[] = [];
 
