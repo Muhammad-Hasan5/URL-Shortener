@@ -4,37 +4,22 @@ import env from "../env.js";
 
 // creating redis client
 
+//TODO solve the graceful redis failure
+
 let redis: Redis;
 
-if (env.data?.ENV === "DEVELOPMENT") {
-  redis = new Redis({
-    host: "localhost",
-    port: 6379,
-    lazyConnect: true,
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1,
-    retryStrategy(times) {
-      if (times > 2) {
-        logger.info("Local Redis unavailable");
-        return null;
-      }
-      return 100;
-    },
-  }); //local
-} else {
-  redis = new Redis(env.data?.REDIS_URL as string, {
-    lazyConnect: true,
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1,
-    retryStrategy(times) {
-      if (times > 3) {
-        logger.info("Redis unavailable. Continuing without cache");
-        return null;
-      }
-      return Math.min(times * 200, 2000);
-    },
-  }); //upstash => cloud
-}
+redis = new Redis(env.data?.REDIS_URL!, {
+  lazyConnect: true,
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+  retryStrategy(times) {
+    if (times > 2) {
+      logger.info("Local Redis unavailable");
+      return null;
+    }
+    return 100;
+  },
+}); 
 
 logger.info("redis client created successfully");
 
