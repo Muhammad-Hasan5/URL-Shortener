@@ -1,45 +1,47 @@
-import {
-  setBreaker,
-  getBreaker,
-  incBreaker,
-  getKeyTTLBreaker,
-  updateKeyTTLBreaker,
-} from "../config/opossum-circuit-Breaker/cacheCircuitBreaker.opossum.js";
-import logger from "../config/pino-logging/index.pino.js";
-import { type CacheRecordType } from "../@types/cache/index.types.js";
+import redis from "../config/redis/index.redis.js";
+import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
+import type { CacheRecordType } from "../@types/cache/index.types.js";
+
+// prefix for key
+const SETGET_PREFIX = "url:";
+const INCR_PREFIX = "url:clicks:";
 
 // saving to cache
-export async function setToCache(cacheRecord: CacheRecordType): Promise<void> {
-  await setBreaker.fire(cacheRecord).catch((err: any) => {
-    logger.error("breaker failed: Cache set failed:", err.message);
-  });
+export async function set(cacheRecord: CacheRecordType): Promise<void> {
+  await safeRedis(
+    async () =>
+      await redis.set(
+        SETGET_PREFIX + cacheRecord.shortCode,
+        JSON.stringify(cacheRecord),
+        "EX",
+        cacheRecord.cachedTtl,
+      ),
+  );
 }
 
 // getting from cache
-export async function getFromCache(shortCode: string): Promise<any> {
-  return await getBreaker.fire(shortCode).catch((err: any) => {
-    logger.error("breaker failed: Error fetching from cache", err);
-    return null;
-  });
+export async function get(shortCode: string): Promise<CacheRecordType | null> {
+  const res = await safeRedis(
+    async () => await redis.get(SETGET_PREFIX + shortCode),
+  );
+  if (!res) return null;
+  return JSON.parse(res);
 }
 
-export async function incClickCount(shortCode: string): Promise<void> {
-  await incBreaker.fire(shortCode).catch((err: any) => {
-    logger.error("breaker failed: failed to increase the click count", err);
-  });
+// icrementing click count
+export async function incr(shortCode: string): Promise<void> {
+  await safeRedis(() => redis.incr(`${INCR_PREFIX}${shortCode}`));
 }
 
-export async function ttl(shortCode: string): Promise<any> {
-  return await getKeyTTLBreaker.fire(shortCode).catch((err: any) => {
-    logger.error("breaker failed: failed to fetch the TTL", err);
-  });
+export async function getKeyTTL(shortCode: string): Promise<number | null> {
+  return await safeRedis(() => redis.ttl(SETGET_PREFIX + shortCode));
 }
 
-export async function updateTTL(
+export async function updateKeyTTL(
   shortCode: string,
   newTTL: number,
 ): Promise<void> {
-  await updateKeyTTLBreaker.fire(shortCode, newTTL).catch((err: any) => {
-    logger.error("breaker failed: failed to update the TTL", err);
-  });
+  await safeRedis(
+    async () => await redis.expire(SETGET_PREFIX + shortCode, newTTL),
+  );
 }
