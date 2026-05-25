@@ -2,9 +2,9 @@ import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
 import { query } from "../db/queries.db.js";
 import {
-  setToCache,
-  getFromCache,
-  incClickCount,
+  set,
+  get,
+  incr,
 } from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
@@ -28,7 +28,7 @@ export async function resolveLongUrl(
       const result = generateShortCode();
 
       // checking if already in cache or not, escaping duplication
-      const cacheResult = await getFromCache(result.shortCode);
+      const cacheResult = await get(result.shortCode);
 
       if (!cacheResult) {
         //cache logging
@@ -66,7 +66,7 @@ export async function resolveLongUrl(
         const TTL = getTTL(0, new Date(Date.now()));
 
         //save new record to cache
-        await setToCache({
+        await set({
           shortCode: result.shortCode,
           longURL,
           clickCount: 0,
@@ -103,7 +103,7 @@ export async function resolveLongUrl(
     } catch (error: any) {
       logger.error(
         { error, attempts },
-        "Error creating shortcode and saving to DB",
+        "resolveLongURL.service.failed",
       );
 
       if (error.code === "23505") {
@@ -122,7 +122,7 @@ export async function resolveShortCode(
 ): Promise<ReturnType | null> {
   try {
     // check cache to get redirect long url
-    const cacheResult = await getFromCache(`url:${String(shortCode)}`);
+    const cacheResult = await get(`url:${String(shortCode)}`);
 
     if (!cacheResult) {
       //cache miss logging
@@ -137,7 +137,7 @@ export async function resolveShortCode(
       const result = await getFromDB(shortCode as string);
 
       //validate DB results
-      if (result?.rows.length === 0) {
+      if (!result || result?.rows.length === 0) {
         return null;
       }
 
@@ -146,7 +146,7 @@ export async function resolveShortCode(
       const TTL = getTTL(Number(clickCount), new Date(created_at));
 
       //save to cache
-      await setToCache({
+      await set({
         shortCode: `url:${String(shortCode)}`,
         longURL: result?.rows[0].long_url,
         clickCount,
@@ -168,7 +168,7 @@ export async function resolveShortCode(
     });
 
     // incrementing click count
-    await incClickCount(shortCode as string);
+    await incr(shortCode as string);
 
     //refreshing ttl if near to expire
     await refreshTtl(cacheResult);
@@ -178,7 +178,7 @@ export async function resolveShortCode(
       data: cacheResult.longURL,
     };
   } catch (error: any) {
-    logger.error("error fetching the respective long url to redirect", error);
+    logger.error({err: error},"resolveShortCode.service.failed");
     return null;
   }
 }
