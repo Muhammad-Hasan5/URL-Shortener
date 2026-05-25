@@ -6,7 +6,7 @@ import { type NewRecordType } from "../@types/db-record/index.types.js";
 // save in db
 export const saveToDB = async (
   newRecord: Partial<NewRecordType>,
-): Promise<QueryResult<any> | undefined> => {
+): Promise<QueryResult<any> | null> => {
   try {
     let queryText = `INSERT INTO urls (id, short_code, long_url, expires_at) 
                     values ($1, $2, $3, $4)
@@ -21,18 +21,20 @@ export const saveToDB = async (
     ]);
   } catch (error: any) {
     logger.error("error saving to DB", error.stack);
+    return null
   }
 };
 
 // get from db
 export const getFromDB = async (
   shortCode: string,
-): Promise<QueryResult<any> | undefined> => {
+): Promise<QueryResult<any> | null> => {
   try {
     let queryText = "SELECT long_url from urls where short_code = $1";
     let result = await query(queryText, [shortCode]);
     return result;
   } catch (error: any) {
     logger.error("error fetching url from DB", error.stack);
+    return null
   }
 };
