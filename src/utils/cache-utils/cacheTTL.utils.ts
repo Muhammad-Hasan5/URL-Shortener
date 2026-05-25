@@ -1,4 +1,4 @@
-import { ttl, updateTTL } from "../../repositories/cache.repository.js";
+import { getKeyTTL, updateKeyTTL } from "../../repositories/cache.repository.js";
 
 const TTL = {
   NEW: 5 * 60,
@@ -37,13 +37,13 @@ function _shouldRefresh(
 }
 
 export async function refreshTtl(cacheResult: any) {
-  const remainingTtl = await ttl(cacheResult.shortCode);
+  const remainingTtl = await getKeyTTL(cacheResult.shortCode);
 
   if (_shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
     const freshTtl = getTTL(
       cacheResult.clickCount,
       new Date(cacheResult.createdAt),
     );
-    await updateTTL(cacheResult.shortCode, freshTtl);
+    await updateKeyTTL(cacheResult.shortCode, freshTtl);
   }
 }
