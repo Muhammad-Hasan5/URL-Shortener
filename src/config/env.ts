@@ -1,14 +1,14 @@
 import z, { type ZodSafeParseResult } from "zod";
-import fs from "fs"
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const envPath = path.resolve(__dirname, "../../.env")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, "../../.env");
 
-if(fs.existsSync(envPath)){
-  process.loadEnvFile(envPath)
+if (fs.existsSync(envPath)) {
+  process.loadEnvFile(envPath);
 }
 
 const envSchema = z.object({
@@ -21,11 +21,11 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOWSMS: z.coerce.number(),
   NODE_ENV: z
     .union([
-      z.literal("DEVELOPMENT"),
-      z.literal("TESTING"),
-      z.literal("PRODUCTION"),
+      z.literal("development"),
+      z.literal("testing"),
+      z.literal("prodcution"),
     ])
-    .default("DEVELOPMENT"),
+    .default("development"),
 });
 
 type envType = ZodSafeParseResult<z.infer<typeof envSchema>>;
