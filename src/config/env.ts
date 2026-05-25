@@ -13,13 +13,13 @@ if(fs.existsSync(envPath)){
 
 const envSchema = z.object({
   PG_CONNECTION_STRING: z.string(),
-  REDIS_URL: z.url(),
+  REDIS_URL: z.string(),
   BASE_URL: z.url(),
   LOG_LEVEL: z.string(),
   PORT: z.coerce.number().default(3000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number(),
   RATE_LIMIT_WINDOWSMS: z.coerce.number(),
-  ENV: z
+  NODE_ENV: z
     .union([
       z.literal("DEVELOPMENT"),
       z.literal("TESTING"),
