@@ -8,7 +8,6 @@ let redis: Redis;
 
 redis = new Redis(env.data?.REDIS_URL!, {
   lazyConnect: true,
-  enableOfflineQueue: false,
   maxRetriesPerRequest: 1,
   retryStrategy(times) {
     if (times > 3) {
