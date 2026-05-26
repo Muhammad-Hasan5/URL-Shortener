@@ -3,8 +3,8 @@ import redis from "../config/redis/index.redis.js";
 import { RedisStore, type RedisReply } from "rate-limit-redis";
 import env from "../config/env.js";
 
-const windowMs = env.data?.RATE_LIMIT_WINDOWSMS as number
-const maxReq = env.data?.RATE_LIMIT_MAX_REQUESTS as number
+const windowMs = env.RATE_LIMIT_WINDOWSMS as number
+const maxReq = env.RATE_LIMIT_MAX_REQUESTS as number
 
 
 const limiter: RateLimitRequestHandler = rateLimit({
