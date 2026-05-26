@@ -78,7 +78,7 @@ export async function resolveLongUrl(
         });
 
         //response
-        const baseURL = `${env.data?.BASE_URL}:${env.data?.PORT}`;
+        const baseURL = `${env.BASE_URL}${env.PORT}`;
 
         return {
           status: 201,
