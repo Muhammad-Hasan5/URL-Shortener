@@ -54,10 +54,10 @@ services:
       - app-network
     restart: unless-stopped
 
-  volumes:
+volumes:
     postgres-data:
     redis-data:
   
-  networks:
-    app-network:
-      driver: bridge
+networks:
+  app-network:
+    driver: bridge
