@@ -1,17 +1,21 @@
 import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
 import { saveToDB, getFromDB } from "../repositories/url.repository.js";
 import { query } from "../db/queries.db.js";
-import {
-  set,
-  get,
-  incr,
-} from "../repositories/cache.repository.js";
+import { set, get, incr } from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
-import { cacheHitLog, cacheMissLog } from "../utils/cache-utils/cacheLogs.utils.js";
+import {
+  cacheHitLog,
+  cacheMissLog,
+} from "../utils/cache-utils/cacheLogs.utils.js";
 import type { QueryResult } from "pg";
 import type { CacheRecordType } from "../@types/cache/index.types.js";
+
+const keys = {
+  url: (shortCode: string) => `url:${shortCode}`,
+  clicks: (shortCode: string) => `url:clicks:${shortCode}`,
+};
 
 type ReturnType = {
   status: number;
@@ -21,16 +25,16 @@ type ReturnType = {
 export async function resolveLongUrl(
   requestId: any,
   longURL: string,
-  expires_at: Date,
 ): Promise<ReturnType | null> {
   let attempts: number = 0;
 
   while (attempts < 3) {
     try {
       const result = generateShortCode();
+      const cacheKey = keys.url(result.shortCode);
 
       // checking if already in cache or not, escaping duplication
-      const cacheResult = await get(result.shortCode);
+      const cacheResult = await get(cacheKey);
 
       if (!cacheResult) {
         //cache logging
@@ -53,27 +57,25 @@ export async function resolveLongUrl(
           };
         }
 
-        //TODO add auth
-        //const date = new Date()
-        //const expiryDate = date.setDate(date.getDate() + 1)
-
         //inserting into DB
         await saveToDB({
           id: result.id.toString(),
           shortCode: result.shortCode,
           longURL,
-          expires_at: new Date(expires_at),
         });
 
-        const TTL = getTTL(0, new Date(Date.now()));
+        const now = new Date()
+
+        const TTL = getTTL(0, now);
 
         //save new record to cache
         await set({
-          shortCode: result.shortCode,
+          shortCode: cacheKey,
           longURL,
           clickCount: 0,
-          createdAt: new Date(Date.now()).toISOString(),
-          expiresAt: new Date(expires_at).toISOString(),
+          createdAt: now.toISOString(),
+          expiresAt: null,
+          lastAccessedAt: null,
           cachedTtl: TTL,
         });
 
@@ -96,25 +98,20 @@ export async function resolveLongUrl(
         route: "short-a-url",
       });
 
-      await refreshTtl(cacheResult);
-
-      return {
-        status: 200,
-        data: cacheResult,
-      };
+      attempts++;
     } catch (error: any) {
-      logger.error(
-        { error, attempts },
-        "resolveLongURL.service.failed",
-      );
+      logger.error({ error, attempts }, "resolveLongURL.service.failed");
 
       if (error.code === "23505") {
         attempts++;
         continue;
       }
+
+      throw error;
     }
   }
 
+  logger.error({ requestId, longURL }, "resolveLongUrl.maxAttemptsExceeded");
   return null;
 }
 
@@ -122,9 +119,12 @@ export async function resolveShortCode(
   requestId: any,
   shortCode: string,
 ): Promise<ReturnType | null> {
+  const cacheKey = keys.url(shortCode)
+  const clicksKey = keys.clicks(shortCode)
+
   try {
     // check cache to get redirect long url
-    const cacheResult = await get(`url:${String(shortCode)}`);
+    const cacheResult = await get(cacheKey);
 
     if (!cacheResult) {
       //cache miss logging
@@ -143,22 +143,26 @@ export async function resolveShortCode(
         return null;
       }
 
-      const clickCount = result?.rows[0].click_count;
-      const created_at = result?.rows[0].created_at;
-      const TTL = getTTL(Number(clickCount), new Date(created_at));
+      const { click_count, created_at, long_url } = result.rows[0];
+      const TTL = getTTL(Number(click_count), new Date(created_at));
+
+      const now = new Date()
 
       //save to cache
       await set({
         shortCode: `url:${String(shortCode)}`,
-        longURL: result?.rows[0].long_url,
-        clickCount,
+        longURL: long_url,
+        clickCount: click_count,
         createdAt: created_at,
-        expiresAt: result?.rows[0].expires_at,
+        expiresAt: null,
+        lastAccessedAt: now.toISOString(),
         cachedTtl: TTL,
       });
 
+      await incr(clicksKey)
+
       // redirect
-      return { status: 302, data: result!.rows[0].long_url };
+      return { status: 302, data: long_url };
     }
     //cache hit logging
     cacheHitLog({
@@ -170,7 +174,7 @@ export async function resolveShortCode(
     });
 
     // incrementing click count
-    await incr(shortCode as string);
+    await incr(clicksKey);
 
     //refreshing ttl if near to expire
     await refreshTtl(cacheResult);
@@ -180,7 +184,7 @@ export async function resolveShortCode(
       data: cacheResult.longURL,
     };
   } catch (error: any) {
-    logger.error({err: error},"resolveShortCode.service.failed");
+    logger.error({ err: error }, "resolveShortCode.service.failed");
     return null;
   }
 }
