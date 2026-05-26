@@ -5,7 +5,8 @@ const cacheRecordSchema = z.object({
   longURL: z.string(),
   clickCount: z.int(),
   createdAt: z.string(),
-  expiresAt: z.string(),
+  expiresAt: z.string().nullable(),
+  lastAccessedAt: z.string().nullable(),
   cachedTtl: z.number(),
 });
 
