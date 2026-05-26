@@ -1,5 +1,4 @@
 import type { Knex } from "knex";
-import env from "./config/env.js";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -8,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const config: Knex.Config = {
   client: "pg",
-  connection: env.data?.PG_CONNECTION_STRING!,
+  connection: process.env.PG_CONNECTION_STRING!,
   pool: { min: 1, max: 2 },
   migrations: {
     directory: path.resolve(__dirname, "./db/migrations"),
