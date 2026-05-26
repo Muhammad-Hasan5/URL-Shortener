@@ -14,22 +14,18 @@ if (fs.existsSync(envPath)) {
 const envSchema = z.object({
   PG_CONNECTION_STRING: z.string(),
   REDIS_URL: z.string(),
-  BASE_URL: z.url(),
-  LOG_LEVEL: z.string(),
   PORT: z.coerce.number().default(3000),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number(),
-  RATE_LIMIT_WINDOWSMS: z.coerce.number(),
+  LOG_LEVEL: z.string().default("info"),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
+  RATE_LIMIT_WINDOWSMS: z.coerce.number().default(60000),
   NODE_ENV: z
-    .union([
-      z.literal("development"),
-      z.literal("testing"),
-      z.literal("prodcution"),
-    ])
+    .enum(["development", "testing", "production"])
     .default("development"),
+  BASE_URL: z.string().optional(),
 });
 
-type envType = ZodSafeParseResult<z.infer<typeof envSchema>>;
+type envType = z.infer<typeof envSchema>
 
-const env: envType = envSchema.safeParse(process.env);
+const env: envType = envSchema.parse(process.env);
 
 export default env;
