@@ -4,32 +4,31 @@ import redis from "./config/redis/index.redis.js";
 import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
 import { startFlushingClicks } from "./jobs/clickFlush.job.js";
+/*
+logger.info({
+  PG_CONNECTION_STRING: env.PG_CONNECTION_STRING,
+  REDIS_URL: env.REDIS_URL,
+  PORT: env.PORT,
+  LOG_LEVEL: env.LOG_LEVEL,
+  RATE_LIMIT_MAX_REQUESTS: env.RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_WINDOWSMS: env.RATE_LIMIT_WINDOWSMS,
+  NODE_ENV: env.NODE_ENV,
+  BASE_URL: env.BASE_URL,
+});
+*/
+const server = app.listen(env.PORT, async () => {
+  logger.info(`App is running on port ${env.BASE_URL}:${env.PORT}`);
 
-async function start() {
-  try {
-    await redis.connect()
-  } catch (err: any) {
-    logger.warn({ err }, "redis.startup.failed — running without cache");
-  }
+  // running flush for click count form redis to PG
+  startFlushingClicks();
+});
 
-  const server = app.listen(env.data?.PORT, async () => {
-    logger.info(
-      `App is running on port ${env.data?.BASE_URL}:${env.data?.PORT}`,
-    );
+process.on("SIGTERM", async (): Promise<any> => {
+  logger.info("closing system");
 
-    // running flush for click count form redis to PG
-    startFlushingClicks();
+  server.close(async () => {
+    await PgPool.end();
+    await redis.quit();
+    process.exit(0);
   });
-
-  process.on("SIGTERM", async (): Promise<any> => {
-    logger.info("closing system");
-
-    server.close(async () => {
-      await PgPool.end();
-      await redis.quit();
-      process.exit(0);
-    });
-  });
-}
-
-start()
+});
