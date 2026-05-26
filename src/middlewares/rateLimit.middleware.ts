@@ -1,11 +1,10 @@
-process.loadEnvFile();
-
 import { rateLimit, type RateLimitRequestHandler } from "express-rate-limit";
 import redis from "../config/redis/index.redis.js";
 import { RedisStore, type RedisReply } from "rate-limit-redis";
+import env from "../config/env.js";
 
-const windowMs = Number(process.env.RATE_LIMIT_WINDOWSMS);
-const maxReq = Number(process.env.RATE_LIMIT_MAX_REQUESTS);
+const windowMs = env.data?.RATE_LIMIT_WINDOWSMS as number
+const maxReq = env.data?.RATE_LIMIT_MAX_REQUESTS as number
 
 
 const limiter: RateLimitRequestHandler = rateLimit({
