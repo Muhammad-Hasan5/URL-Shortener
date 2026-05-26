@@ -16,7 +16,7 @@ COPY --from=builder /app/dist ./dist
 
 COPY --from=builder /app/src/db/migrations ./src/db/migrations
 COPY --from=builder /app/src/knexfile.ts ./src/knexfile.ts
-COPY --from=builder/app/tsconfig*.json ./
+COPY --from=builder /app/tsconfig*.json ./
 
 COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
