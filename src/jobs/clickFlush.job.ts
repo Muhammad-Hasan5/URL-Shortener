@@ -82,7 +82,7 @@ async function runFLushLoop(): Promise<void> {
 }
 
 // method for index.ts
-export async function startFlushingClicks(): Promise<void>{
+export function startFlushingClicks(): void{
     logger.info('clickFLush.job.starting')
-    await runFLushLoop()
+    runFLushLoop()
 }
