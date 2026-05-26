@@ -10,10 +10,12 @@ import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
 import { cacheHitLog, cacheMissLog } from "../utils/cache-utils/cacheLogs.utils.js";
+import type { QueryResult } from "pg";
+import type { CacheRecordType } from "../@types/cache/index.types.js";
 
 type ReturnType = {
   status: number;
-  data: any;
+  data: QueryResult<any> | CacheRecordType | string;
 };
 
 export async function resolveLongUrl(
@@ -47,7 +49,7 @@ export async function resolveLongUrl(
         if ((existing?.rows.length as number) > 0) {
           return {
             status: 200,
-            data: existing,
+            data: existing!,
           };
         }
 
