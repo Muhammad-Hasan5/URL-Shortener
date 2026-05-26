@@ -4,7 +4,7 @@ import logger from "../config/pino-logging/index.pino.js";
 import env from "../config/env.js";
 
 export const PgPool = new Pool({
-  connectionString: String(env.data?.PG_CONNECTION_STRING),
+  connectionString: String(env.PG_CONNECTION_STRING),
   max: 12,
   connectionTimeoutMillis: 3000,
   idleTimeoutMillis: 30000,
