@@ -8,8 +8,8 @@ export const saveToDB = async (
   newRecord: Partial<NewRecordType>,
 ): Promise<QueryResult<any> | null> => {
   try {
-    let queryText = `INSERT INTO urls (id, short_code, long_url, expires_at) 
-                    values ($1, $2, $3, $4)
+    let queryText = `INSERT INTO urls (id, short_code, long_url) 
+                    values ($1, $2, $3)
                     `;
 
     // querying DB
@@ -17,7 +17,6 @@ export const saveToDB = async (
       newRecord.id,
       newRecord.shortCode,
       newRecord.longURL,
-      newRecord.expires_at
     ]);
   } catch (error: any) {
     logger.error("error saving to DB", error.stack);
