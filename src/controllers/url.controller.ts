@@ -4,23 +4,21 @@ import { resolveLongUrl, resolveShortCode } from "../services/url.service.js";
 // covnert long url to SHORT one
 export const shortURL = async (req: Request, res: Response): Promise<any> => {
   //fetch
-  const { longURL, expires_at } = req.body;
+  const { longURL } = req.body;
 
-  //validate incoming long url
+  //validate incoming long url & expiry date
   try {
     new URL(longURL);
-    new Date(expires_at);
   } catch {
     return res.status(400).json({
       status: 400,
       success: false,
-      msg: "invalid url or expiry date",
+      msg: "invalid url",
     });
   }
 
   //resolve
-  const expiresAt: Date = new Date(expires_at);
-  const result = await resolveLongUrl(req.id, String(longURL), expiresAt);
+  const result = await resolveLongUrl(req.id, String(longURL));
 
   // response
   if (result === null) {
