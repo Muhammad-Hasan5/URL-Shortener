@@ -1,4 +1,3 @@
-//build
 FROM node:20.19.4-alpine as builder
 WORKDIR /app
 COPY package*.json ./
@@ -6,10 +5,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-//production
 FROM node:20.19.4-alpine as production
-RUN apk add --no-cache postgrsql-client
+RUN apk add --no-cache postgresql-client
 WORKDIR /app
+
+COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
