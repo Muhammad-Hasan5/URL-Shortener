@@ -1,11 +1,11 @@
 import type { QueryResult } from "pg";
 import { query } from "../db/queries.db.js";
 import logger from "../config/pino-logging/index.pino.js";
-import { type NewRecordType } from "../@types/db-record/index.types.js";
+import { type DatabaseRecord } from "../@types/db-record/index.types.js";
 
 // save in db
 export const saveToDB = async (
-  newRecord: Partial<NewRecordType>,
+  newRecord: Partial<DatabaseRecord>,
 ): Promise<QueryResult<any> | null> => {
   try {
     let queryText = `INSERT INTO urls (id, short_code, long_url) 
@@ -20,7 +20,7 @@ export const saveToDB = async (
     ]);
   } catch (error: any) {
     logger.error("error saving to DB", error.stack);
-    return null
+    return null;
   }
 };
 
