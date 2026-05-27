@@ -3,8 +3,8 @@ import { apiMetrics, serverHealthCheck, serverReadyCheck } from "../controllers/
 
 const router = Router()
 
-router.route("/health/live").get(serverHealthCheck);
-router.route("/health/ready").get(serverReadyCheck);
-router.route("/metrics").get(apiMetrics)
+router.route("/api/v1/health/live").get(serverHealthCheck);
+router.route("/api/v1/health/ready").get(serverReadyCheck);
+router.route("/api/v1/metrics").get(apiMetrics);
 
 export default router
