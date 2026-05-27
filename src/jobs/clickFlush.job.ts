@@ -28,20 +28,39 @@ async function flushClickCount(): Promise<void> {
   //executing all the commands in pipeline
   const results = await safeRedis(async () => await pipeline.exec());
 
+   if (!results) {
+     logger.error(
+       "clickFlush.job: pipeline.exec returned null — Redis error, counts lost for this cycle",
+     );
+     return;
+   }
+
   const updates: { shortCode: string; delta: number }[] = [];
 
   /*building a bulk payload to update DB */
   for (let i = 0; i < keys.length; i++) {
     const shortCode = keys[i]?.replace("url:clicks:", "");
-    const value = results?.[i]?.[1];
-    const delta = parseInt(value as string, 10);
+    const [pipelineErr, value] = results[i] as [Error | null, string | null];
+
+    if (pipelineErr) {
+      logger.error(
+        { err: pipelineErr, shortCode },
+        "clickFlush.job: getdel failed for key",
+      );
+      continue;
+    }
+
+    const delta = parseInt(value ?? "", 10);
 
     if (!isNaN(delta) && delta > 0) {
       updates.push({ shortCode: shortCode!, delta });
     }
   }
 
-  if (updates.length == 0) return;
+  if (updates.length == 0) {
+    logger.debug("clickFlush.job: all deltas were zero or invalid");
+    return;
+  };
 
   //separating shortCodes and deltas
   const shortCodes = updates.map((u) => u.shortCode);
@@ -52,7 +71,7 @@ async function flushClickCount(): Promise<void> {
     `
         UPDATE urls
         SET click_count = click_count + delta_table.delta
-        FROM UNNEST($1::STRING[], $2::INT[]) AS delta_table(short_code, delta)
+        FROM UNNEST($1::TEXT[], $2::INT[]) AS delta_table(short_code, delta)
         WHERE urls.short_code = delta_table.short_code
     `,
     [shortCodes, deltas],
@@ -61,8 +80,8 @@ async function flushClickCount(): Promise<void> {
   logger.info(
     {
       flushedKeys: updates.length,
-      totalClicks: deltas.reduce((acc, curr) => acc + curr, 0),
-      durationMS: Date.now() - start,
+      totalClicks: deltas.reduce((a, b) => a + b, 0),
+      durationMs: Date.now() - start,
     },
     "clickFlush.job.complete",
   );
