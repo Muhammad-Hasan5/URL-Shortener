@@ -1,4 +1,4 @@
-import generateID from "./snowflakeID.utils.js";
+import { snowflake } from "../../index.js";
 import z from "zod";
 
 //validation using the Z0D
@@ -11,7 +11,7 @@ type ShortCodeObject = z.infer<typeof shortCodeSchema>;
 
 //short the url
 export const generateShortCode = (): ShortCodeObject => {
-  const id = generateID();
+  const id = snowflake.generate();
   let num: bigint = id;
   let res = "";
   let chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
