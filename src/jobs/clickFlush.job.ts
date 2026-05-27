@@ -4,7 +4,7 @@ import logger from "../config/pino-logging/index.pino.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
 
 const FLUSH_INTERVAL_MS = 60_000;
-const KEY_PATTERN = "url:click:*";
+const KEY_PATTERN = "url:clicks:*";
 
 async function flushClickCount(): Promise<void> {
   const start = Date.now(); // timer: how much time to flush
@@ -32,7 +32,7 @@ async function flushClickCount(): Promise<void> {
 
   /*building a bulk payload to update DB */
   for (let i = 0; i < keys.length; i++) {
-    const shortCode = keys[i]?.replace("url:click:", "");
+    const shortCode = keys[i]?.replace("url:clicks:", "");
     const value = results?.[i]?.[1];
     const delta = parseInt(value as string, 10);
 
