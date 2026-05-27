@@ -1,11 +1,12 @@
 import { cacheRequests } from "../../config/prometheus-metrics/index.prometheus.js";
 import logger from "../../config/pino-logging/index.pino.js";
+import type { CacheRecord } from "../../@types/cache/index.types.js";
 
 interface ILogObject {
   reqId: any;
   reqMethod: string;
   cacheMethod: string;
-  cacheResult?: any;
+  cacheResult?: CacheRecord | null;
   route: string;
 }
 
