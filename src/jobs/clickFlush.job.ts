@@ -7,14 +7,17 @@ const FLUSH_INTERVAL_MS = 60_000;
 const KEY_PATTERN = "url:clicks:*";
 
 async function flushClickCount(): Promise<void> {
-  const start = Date.now(); // timer: how much time to flush
+  // timer: how much time to flush => for logging
+  const start = Date.now();
 
   //fetched all the keys of matching pattern
   const keys = await safeRedis(async () => await redis.keys(KEY_PATTERN));
 
   // if no keys found => no flush
   if (!keys || keys?.length == 0) {
-    logger.info("clickFlush.job: no keys of such pattern are there || no keys are there");
+    logger.info(
+      "clickFlush.job: no keys of such pattern are there || no keys are there",
+    );
     return;
   }
 
@@ -28,12 +31,12 @@ async function flushClickCount(): Promise<void> {
   //executing all the commands in pipeline
   const results = await safeRedis(async () => await pipeline.exec());
 
-   if (!results) {
-     logger.error(
-       "clickFlush.job: pipeline.exec returned null — Redis error, counts lost for this cycle",
-     );
-     return;
-   }
+  if (!results) {
+    logger.error(
+      "clickFlush.job: pipeline.exec returned null — Redis error, counts lost for this cycle",
+    );
+    return;
+  }
 
   const updates: { shortCode: string; delta: number }[] = [];
 
@@ -60,7 +63,7 @@ async function flushClickCount(): Promise<void> {
   if (updates.length == 0) {
     logger.debug("clickFlush.job: all deltas were zero or invalid");
     return;
-  };
+  }
 
   //separating shortCodes and deltas
   const shortCodes = updates.map((u) => u.shortCode);
