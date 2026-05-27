@@ -2,12 +2,12 @@ import logger from "../../config/pino-logging/index.pino.js";
 
 let EPOCH = 1700000000000;
 
-let timestamp: bigint = 0n;
-let lastTimestamp: bigint = 0n;
+let timestamp = 0n;
+let lastTimestamp = 0n;
 
-let machineID: bigint = 1n;
+let machineID = 1n;
 
-let sequence: bigint = 0n;
+let sequence = 0n;
 
 export default function generateID(): bigint {
   timestamp = BigInt(Date.now());

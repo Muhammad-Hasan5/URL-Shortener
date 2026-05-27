@@ -1,20 +1,20 @@
 import generateID from "./snowflakeID.utils.js";
 import z from "zod";
 
+//validation using the Z0D
 const shortCodeSchema = z.object({
   id: z.bigint(),
   shortCode: z.string(),
 });
 
-type ShortCodeType = z.infer<typeof shortCodeSchema>;
+type ShortCodeObject = z.infer<typeof shortCodeSchema>;
 
 //short the url
-export const generateShortCode = (): ShortCodeType => {
+export const generateShortCode = (): ShortCodeObject => {
   const id = generateID();
   let num: bigint = id;
-  let res: string = "";
-  let chars: string =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let res = "";
+  let chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
   while (num > 0n) {
     let rem = num % 62n;
