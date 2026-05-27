@@ -1,13 +1,13 @@
 import redis from "../config/redis/index.redis.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
-import type { CacheRecordType } from "../@types/cache/index.types.js";
+import type { CacheRecord } from "../@types/cache/index.types.js";
 
 // prefix for key
 const SETGET_PREFIX = "url:";
 const INCR_PREFIX = "url:clicks:";
 
 // saving to cache
-export async function set(cacheRecord: CacheRecordType): Promise<void> {
+export async function set(cacheRecord: CacheRecord): Promise<void> {
   await safeRedis(
     async () =>
       await redis.set(
@@ -20,7 +20,7 @@ export async function set(cacheRecord: CacheRecordType): Promise<void> {
 }
 
 // getting from cache
-export async function get(shortCode: string): Promise<CacheRecordType | null> {
+export async function get(shortCode: string): Promise<CacheRecord | null> {
   const res = await safeRedis(
     async () => await redis.get(SETGET_PREFIX + shortCode),
   );
