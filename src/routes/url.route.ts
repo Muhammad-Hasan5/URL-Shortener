@@ -8,7 +8,7 @@ const router = Router();
 
 router.route("/shorten").post(limiter, logRequestID, requestLogger, shortURL);
 router
-  .route("/:shortCode([A-Za-z0-9]{6,12})")
+  .route("/r/:shortCode")
   .get(logRequestID, requestLogger, redirect);
 
 export default router;
