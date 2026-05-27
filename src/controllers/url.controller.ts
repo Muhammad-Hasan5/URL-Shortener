@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { resolveLongUrl, resolveShortCode } from "../services/url.service.js";
 
 // covnert long url to SHORT one
-export const shortURL = async (req: Request, res: Response): Promise<any> => {
+export const shortURL = async (req: Request, res: Response) => {
   //fetch
   const { longURL } = req.body;
 
