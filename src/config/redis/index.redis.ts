@@ -4,9 +4,7 @@ import env from "../env.js";
 
 // creating redis client
 
-let redis: Redis;
-
-redis = new Redis(env.REDIS_URL, {
+const redis = new Redis(env.REDIS_URL, {
   retryStrategy(times) {
    const delay = Math.min(times * 300, 5000);
    logger.warn({ attempt: times, delayMs: delay }, "redis.retry");
