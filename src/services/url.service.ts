@@ -10,22 +10,23 @@ import {
   cacheMissLog,
 } from "../utils/cache-utils/cacheLogs.utils.js";
 import type { QueryResult } from "pg";
-import type { CacheRecordType } from "../@types/cache/index.types.js";
+import type { CacheRecord } from "../@types/cache/index.types.js";
 
+// perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
   url: (shortCode: string) => `url:${shortCode}`,
   clicks: (shortCode: string) => `url:clicks:${shortCode}`,
 };
 
-type ReturnType = {
+type ServiceResponse = {
   status: number;
-  data: QueryResult<any> | CacheRecordType | string;
+  data: QueryResult<any> | CacheRecord | string;
 };
 
 export async function resolveLongUrl(
   requestId: any,
   longURL: string,
-): Promise<ReturnType | null> {
+): Promise<ServiceResponse | null> {
   let attempts: number = 0;
 
   while (attempts < 3) {
@@ -64,7 +65,7 @@ export async function resolveLongUrl(
           longURL,
         });
 
-        const now = new Date()
+        const now = new Date();
 
         const TTL = getTTL(0, now);
 
@@ -86,9 +87,8 @@ export async function resolveLongUrl(
           status: 201,
           data: `${baseURL}/${result.shortCode}`,
         };
-
-        //`${env.data?.BASE_URL}:${env.data?.PORT}/${existing?.rows[0].short_code}`}
       }
+      
       // cache hit logging
       cacheHitLog({
         reqId: requestId,
@@ -118,9 +118,9 @@ export async function resolveLongUrl(
 export async function resolveShortCode(
   requestId: any,
   shortCode: string,
-): Promise<ReturnType | null> {
-  const cacheKey = keys.url(shortCode)
-  const clicksKey = keys.clicks(shortCode)
+): Promise<ServiceResponse | null> {
+  const cacheKey = keys.url(shortCode);
+  const clicksKey = keys.clicks(shortCode);
 
   try {
     // check cache to get redirect long url
@@ -146,7 +146,7 @@ export async function resolveShortCode(
       const { click_count, created_at, long_url } = result.rows[0];
       const TTL = getTTL(Number(click_count), new Date(created_at));
 
-      const now = new Date()
+      const now = new Date();
 
       //save to cache
       await set({
@@ -159,7 +159,7 @@ export async function resolveShortCode(
         cachedTtl: TTL,
       });
 
-      await incr(clicksKey)
+      await incr(clicksKey);
 
       // redirect
       return { status: 302, data: long_url };
