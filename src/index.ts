@@ -3,7 +3,10 @@ import { PgPool } from "./db/pool.db.js";
 import redis from "./config/redis/index.redis.js";
 import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
+import { SnowflakeGenerator } from "./utils/snowflakeID-utils/snowflakeID.utils.js";
+import { claimMachineID } from "./utils/snowflakeID-utils/machineIdLease.utils.js";
 import { startFlushingClicks } from "./jobs/clickFlush.job.js";
+
 /*
 logger.info({
   PG_CONNECTION_STRING: env.PG_CONNECTION_STRING,
@@ -16,6 +19,10 @@ logger.info({
   BASE_URL: env.BASE_URL,
 });
 */
+
+const { machineId, stopRenewal } = await claimMachineID(redis);
+export const snowflake = new SnowflakeGenerator(machineId);
+
 const server = app.listen(env.PORT, async () => {
   logger.info(`App is running on port ${env.BASE_URL}:${env.PORT}`);
 
@@ -25,6 +32,11 @@ const server = app.listen(env.PORT, async () => {
 
 process.on("SIGTERM", async (): Promise<any> => {
   logger.info("closing system");
+
+  // stopping renewal of machineID
+  stopRenewal();
+  // releasing all machineIds in redis
+  await redis.del(`snowflake:machine:${machineId}`);
 
   server.close(async () => {
     await PgPool.end();
