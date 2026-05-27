@@ -10,4 +10,4 @@ const cacheRecordSchema = z.object({
   cachedTtl: z.number(),
 });
 
-export type CacheRecordType = z.infer<typeof cacheRecordSchema>;
+export type CacheRecord = z.infer<typeof cacheRecordSchema>;
