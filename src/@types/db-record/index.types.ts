@@ -12,4 +12,4 @@ const newRecordSchema = z.object({
   deleted_at: z.coerce.date().nullable().optional(),
 });
 
-export type NewRecordType = z.infer<typeof newRecordSchema>
+export type DatabaseRecord = z.infer<typeof newRecordSchema>
