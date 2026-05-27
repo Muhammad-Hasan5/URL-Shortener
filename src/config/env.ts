@@ -1,4 +1,4 @@
-import z, { type ZodSafeParseResult } from "zod";
+import z from "zod";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -24,8 +24,8 @@ const envSchema = z.object({
   BASE_URL: z.string().optional(),
 });
 
-type envType = z.infer<typeof envSchema>
+type Env = z.infer<typeof envSchema>
 
-const env: envType = envSchema.parse(process.env);
+const env: Env = envSchema.parse(process.env);
 
 export default env;
