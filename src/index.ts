@@ -21,6 +21,7 @@ logger.info({
 */
 
 const { machineId, stopRenewal } = await claimMachineID(redis);
+console.log(machineId)
 export const snowflake = new SnowflakeGenerator(machineId);
 
 const server = app.listen(env.PORT, async () => {
