@@ -1,10 +1,11 @@
 services:
-  app:
+  app1:
     build:
       context: .
       target: production
+    container_name: app1
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -16,8 +17,72 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis: 
+      redis:
         condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  app2:
+    build:
+      context: .
+      target: production
+    container_name: app2
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PG_CONNECTION_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  app3:
+    build:
+      context: .
+      target: production
+    container_name: app3
+    ports:
+      - "3003:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PG_CONNECTION_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+  
+  haproxy:
+    image: haproxy:latest
+    container_name: haproxy
+    ports:
+      - "80:80"
+      - "8404:8404"
+    volumes:
+      - ./HAProxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
     networks:
       - app-network
     restart: unless-stopped
@@ -39,12 +104,12 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-  
+
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes   
+    command: redis-server --appendonly yes
     volumes:
-      - redis-data:/data                    
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -55,9 +120,9 @@ services:
     restart: unless-stopped
 
 volumes:
-    postgres-data:
-    redis-data:
-  
+  postgres-data:
+  redis-data:
+
 networks:
   app-network:
     driver: bridge
