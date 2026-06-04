@@ -1,0 +1,8 @@
+* text=auto
+
+*.sh text eol=lf
+
+Dockerfile text eof=lf
+docker-compose.yaml text eol=lf
+
+*.conf text eol=lf
