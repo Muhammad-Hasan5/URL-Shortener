@@ -1,6 +1,5 @@
 import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
-import { saveToDB, getFromDB } from "../repositories/url.repository.js";
-import { query } from "../db/queries.db.js";
+import { checkIfAlreadyExists, createUrl, findByShortCode } from "../repositories/url.repository.js";
 import { set, get, incr } from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
@@ -47,19 +46,17 @@ export async function resolveLongUrl(
         });
 
         // checking if already in DB or not
-        const existing = await query(`SELECT * FROM urls WHERE long_url = $1`, [
-          longURL,
-        ]);
+        const existing = await checkIfAlreadyExists(longURL);
 
-        if ((existing?.rows.length as number) > 0) {
+        if (existing && (existing?.rows.length as number) > 0) {
           return {
             status: 200,
-            data: existing!,
+            data: existing,
           };
         }
 
         //inserting into DB
-        await saveToDB({
+        await createUrl({
           id: result.id.toString(),
           shortCode: result.shortCode,
           longURL,
@@ -99,6 +96,14 @@ export async function resolveLongUrl(
       });
 
       attempts++;
+
+      const baseURL = `${env.BASE_URL}${env.PORT}`;
+
+      return {
+        status: 200,
+        data: `${baseURL}/${cacheResult.shortCode}`,
+      };
+      
     } catch (error: any) {
       logger.error({ error, attempts }, "resolveLongURL.service.failed");
 
@@ -136,7 +141,7 @@ export async function resolveShortCode(
       });
 
       // call db to get redirect long url
-      const result = await getFromDB(shortCode as string);
+      const result = await findByShortCode(shortCode as string);
 
       //validate DB results
       if (!result || result?.rows.length === 0) {
