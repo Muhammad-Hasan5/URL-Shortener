@@ -12,7 +12,8 @@ if (fs.existsSync(envPath)) {
 }
 
 const envSchema = z.object({
-  PG_CONNECTION_STRING: z.string(),
+  PG_PRIMARY_STRING: z.string(),
+  PG_REPLICA_STRING: z.string(),
   REDIS_URL: z.string(),
   PORT: z.coerce.number().default(3000),
   LOG_LEVEL: z.string().default("info"),
@@ -21,7 +22,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "testing", "production"])
     .default("development"),
-  BASE_URL: z.string().optional(),
+  BASE_URL: z.string(),
 });
 
 type Env = z.infer<typeof envSchema>
