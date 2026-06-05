@@ -9,17 +9,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      PG_CONNECTION_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
+      PG_PRIMARY_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER}
     depends_on:
       primary:
         condition: service_healthy
       replica:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -36,17 +33,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      PG_CONNECTION_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
+      PG_PRIMARY_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER}
     depends_on:
       primary:
         condition: service_healthy
       replica:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -63,17 +57,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      PG_CONNECTION_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
+      PG_PRIMARY_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER}
     depends_on:
       primary:
         condition: service_healthy
       replica:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -118,7 +109,7 @@ services:
     restart: unless-stopped
 
   replica:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: url_replica
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -128,7 +119,13 @@ services:
       PGDATA: /var/lib/postgresql/data
     volumes:
       - replica-data:/var/lib/postgresql/data
-      - .postgres/replica/init-replica.sh:/init-replica.sh
+      - ./postgres/replica/init-replica.sh:/init-replica.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
     entrypoint: >
       bash -c "
         chmod +x /init-replica.sh &&
@@ -159,7 +156,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres-data:
+  primary-data:
   replica-data:
   redis-data:
 
