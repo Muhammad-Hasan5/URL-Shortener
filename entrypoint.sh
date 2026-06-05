@@ -2,7 +2,7 @@
 set -e
 
 echo "Waiting for PostgreSQL to be ready..."
-until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
+until pg_isready -d "$PG_PRIMARY_STRING"; do
   echo "PostgreSQL not ready yet, retrying in 2s..."
   sleep 2
 done
