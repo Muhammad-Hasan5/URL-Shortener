@@ -78,7 +78,7 @@ export async function resolveLongUrl(
         });
 
         //response
-        const baseURL = `${env.BASE_URL}${env.PORT}`;
+        const baseURL = `http://localhost:${env.PORT}`;
 
         return {
           status: 201,
@@ -97,7 +97,7 @@ export async function resolveLongUrl(
 
       attempts++;
 
-      const baseURL = `${env.BASE_URL}${env.PORT}`;
+      const baseURL = `http://localhost${env.PORT}`;
 
       return {
         status: 200,
