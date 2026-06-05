@@ -1,7 +1,7 @@
-import { query } from "../db/queries.db.js";
 import redis from "../config/redis/index.redis.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
+import { getPool } from "../db/pools.db.js";
 
 const FLUSH_INTERVAL_MS = 60_000;
 const KEY_PATTERN = "url:clicks:*";
@@ -70,7 +70,8 @@ async function flushClickCount(): Promise<void> {
   const deltas = updates.map((u) => u.delta);
 
   // querying DB for updation
-  await query(
+  const db = getPool("write")
+  await db.query(
     `
         UPDATE urls
         SET click_count = click_count + delta_table.delta
