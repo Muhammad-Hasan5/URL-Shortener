@@ -1,5 +1,5 @@
 import app from "./app.js";
-import { PgPool } from "./db/pool.db.js";
+import { primaryPool, replicaPool} from "./db/pools.db.js";
 import redis from "./config/redis/index.redis.js";
 import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
@@ -21,7 +21,7 @@ logger.info({
 */
 
 const { machineId, stopRenewal } = await claimMachineID(redis);
-console.log(machineId)
+console.log(machineId);
 export const snowflake = new SnowflakeGenerator(machineId);
 
 const server = app.listen(env.PORT, async () => {
@@ -40,7 +40,8 @@ process.on("SIGTERM", async (): Promise<any> => {
   await redis.del(`snowflake:machine:${machineId}`);
 
   server.close(async () => {
-    await PgPool.end();
+    await primaryPool.end();
+    await replicaPool.end();
     await redis.quit();
     process.exit(0);
   });
