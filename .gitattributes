@@ -1,6 +1,7 @@
 * text=auto
 
 *.sh text eol=lf
+*.sql text eol=lf
 
 Dockerfile text eof=lf
 docker-compose.yaml text eol=lf
