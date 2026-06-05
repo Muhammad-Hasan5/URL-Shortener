@@ -21,9 +21,9 @@ PGPASSWORD="$REPLICA_PASS" pg_basebackup \
   --port=5432 \
   --username=replicator \
   --pgdata="$PGDATA" \
-  --format=plain \     
-  --write-recovery-conf \ 
-  --checkpoint=fast \  
+  --format=plain \
+  --write-recovery-conf \
+  --checkpoint=fast \
   --progress \
   --verbose
 
@@ -31,10 +31,9 @@ echo "✓ Base backup complete"
 
 cat >> "$PGDATA/postgresql.conf" <<-EOF
 
-# Replica settings
-hot_standby = on              # allow read queries while in recovery
-hot_standby_feedback = on     # tell primary about our long-running queries
-                              # prevents primary from vacuuming rows we're reading
+hot_standby = on              
+hot_standby_feedback = on     
+                             
 EOF
 
 echo "Replica configuration complete"
