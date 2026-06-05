@@ -2,7 +2,7 @@
 
 set -e
 
-psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" <<-SQL
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres <<-SQL
     DO
     \$do\$
     BEGIN
@@ -28,6 +28,5 @@ EOF
 grep -qF 'replication replicator' "$PGDATA/pg_hba.conf" || \
   echo "host replication replicator 0.0.0.0/0 md5" >> "$PGDATA/pg_hba.conf"
 
-psql -U "$POSTGRES_USER" -c "SELECT pg_reload_conf();"
 
 echo "Primary replication complete"
