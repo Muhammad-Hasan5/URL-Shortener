@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const config: Knex.Config = {
   client: "pg",
-  connection: process.env.PG_CONNECTION_STRING!,
+  connection: process.env.PG_PRIMARY_STRING!,
   pool: { min: 1, max: 2 },
   migrations: {
     directory: path.resolve(__dirname, "./db/migrations"),
