@@ -39,6 +39,10 @@ This project is a URL shortener built with a layered architecture using:
 * Avoided JavaScript number overflow issues
 * Guarantees uniqueness without DB dependency
 
+#### ID Structure
+
+![ID structure](/images/idStructure.png)
+
 ### Encoding
 
 * Base62 encoding for compact URLs
