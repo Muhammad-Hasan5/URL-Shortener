@@ -22,7 +22,6 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "testing", "production"])
     .default("development"),
-  BASE_URL: z.string(),
 });
 
 type Env = z.infer<typeof envSchema>

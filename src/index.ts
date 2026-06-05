@@ -25,7 +25,7 @@ console.log(machineId);
 export const snowflake = new SnowflakeGenerator(machineId);
 
 const server = app.listen(env.PORT, async () => {
-  logger.info(`App is running on port ${env.BASE_URL}:${env.PORT}`);
+  logger.info(`App is running on port http://localhost:${env.PORT}`);
 
   // running flush for click count form redis to PG
   startFlushingClicks();
