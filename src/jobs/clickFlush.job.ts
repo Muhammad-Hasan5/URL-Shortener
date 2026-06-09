@@ -1,7 +1,9 @@
 import redis from "../config/redis/index.redis.js";
+import { clickCountScheduler } from "../config/bullmq/index.bullmq.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
 import { getPool } from "../db/pools.db.js";
+import { Worker } from "bullmq";
 
 const FLUSH_INTERVAL_MS = 60_000;
 const KEY_PATTERN = "url:clicks:*";
@@ -70,7 +72,7 @@ async function flushClickCount(): Promise<void> {
   const deltas = updates.map((u) => u.delta);
 
   // querying DB for updation
-  const db = getPool("write")
+  const db = getPool("write");
   await db.query(
     `
         UPDATE urls
@@ -91,21 +93,31 @@ async function flushClickCount(): Promise<void> {
   );
 }
 
-// looping the flush
-async function runFLushLoop(): Promise<void> {
-  while (true) {
-    try {
-      await flushClickCount();
-    } catch (error: any) {
-      logger.error({ error }, "clickFlush.job.error");
-    }
+await clickCountScheduler.upsertJobScheduler(
+  "click-count-flush",
+  {
+    every: FLUSH_INTERVAL_MS,
+  },
+  {
+    name: "click-count-flush",
+    data: { msg: "click count flusher runs" },
+    opts: {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 1000,
+      },
+      removeOnComplete: 10,
+      removeOnFail: true,
+    },
+  },
+);
 
-    await new Promise((resolve) => setTimeout(resolve, FLUSH_INTERVAL_MS));
-  }
-}
-
-// method for index.ts
-export function startFlushingClicks(): void{
-    logger.info('clickFLush.job.starting')
-    runFLushLoop()
-}
+export const worker = new Worker(
+  "click-count-scheduler",
+  async (job) => {
+    logger.info(`Processing job ${job.id}, with a message: ${job.data.msg}`);
+    await flushClickCount();
+  },
+  { connection: redis, concurrency: 1 },
+);
