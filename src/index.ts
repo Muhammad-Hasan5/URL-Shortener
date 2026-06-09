@@ -1,11 +1,12 @@
 import app from "./app.js";
-import { primaryPool, replicaPool} from "./db/pools.db.js";
+import { primaryPool, replicaPool } from "./db/pools.db.js";
 import redis from "./config/redis/index.redis.js";
 import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
 import { SnowflakeGenerator } from "./utils/snowflakeID-utils/snowflakeID.utils.js";
 import { claimMachineID } from "./utils/snowflakeID-utils/machineIdLease.utils.js";
-import { startFlushingClicks } from "./jobs/clickFlush.job.js";
+import { worker } from "./jobs/clickFlush.job.js";
+import { clickCountScheduler } from "./config/bullmq/index.bullmq.js";
 
 /*
 logger.info({
@@ -26,9 +27,6 @@ export const snowflake = new SnowflakeGenerator(machineId);
 
 const server = app.listen(env.PORT, async () => {
   logger.info(`App is running on port http://localhost:${env.PORT}`);
-
-  // running flush for click count form redis to PG
-  startFlushingClicks();
 });
 
 process.on("SIGTERM", async (): Promise<any> => {
@@ -43,6 +41,8 @@ process.on("SIGTERM", async (): Promise<any> => {
     await primaryPool.end();
     await replicaPool.end();
     await redis.quit();
+    await worker.close();
+    await clickCountScheduler.close();
     process.exit(0);
   });
 });
