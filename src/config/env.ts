@@ -19,6 +19,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default("info"),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   RATE_LIMIT_WINDOWSMS: z.coerce.number().default(60000),
+  GEO_CITY_DB_PATH: z.string(),
   NODE_ENV: z
     .enum(["development", "testing", "production"])
     .default("development"),
