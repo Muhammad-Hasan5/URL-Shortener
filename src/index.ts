@@ -6,7 +6,7 @@ import env from "./config/env.js";
 import { SnowflakeGenerator } from "./utils/snowflakeID-utils/snowflakeID.utils.js";
 import { claimMachineID } from "./utils/snowflakeID-utils/machineIdLease.utils.js";
 import { worker } from "./jobs/clickFlush.job.js";
-import { clickCountScheduler } from "./config/bullmq/index.bullmq.js";
+import { clickCountScheduler } from "./analytics/analytics.queue.js";
 
 /*
 logger.info({
