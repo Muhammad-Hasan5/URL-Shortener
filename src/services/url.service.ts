@@ -1,6 +1,10 @@
 import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
-import { checkIfAlreadyExists, createUrl, findByShortCode } from "../repositories/url.repository.js";
-import { set, get, incr } from "../repositories/cache.repository.js";
+import {
+  checkIfAlreadyExists,
+  createUrl,
+  findByShortCode,
+} from "../repositories/url.repository.js";
+import { set, get } from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
@@ -14,11 +18,11 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 // perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
   url: (shortCode: string) => `url:${shortCode}`,
-  clicks: (shortCode: string) => `url:clicks:${shortCode}`,
 };
 
 type ServiceResponse = {
   status: number;
+  url_id?: string;
   data: QueryResult<any> | CacheRecord | string;
 };
 
@@ -68,6 +72,7 @@ export async function resolveLongUrl(
 
         //save new record to cache
         await set({
+          id: result.id.toString(),
           shortCode: cacheKey,
           longURL,
           clickCount: 0,
@@ -85,7 +90,7 @@ export async function resolveLongUrl(
           data: `${baseURL}/${result.shortCode}`,
         };
       }
-      
+
       // cache hit logging
       cacheHitLog({
         reqId: requestId,
@@ -103,7 +108,6 @@ export async function resolveLongUrl(
         status: 200,
         data: `${baseURL}/${cacheResult.shortCode}`,
       };
-      
     } catch (error: any) {
       logger.error({ error, attempts }, "resolveLongURL.service.failed");
 
@@ -125,7 +129,6 @@ export async function resolveShortCode(
   shortCode: string,
 ): Promise<ServiceResponse | null> {
   const cacheKey = keys.url(shortCode);
-  const clicksKey = keys.clicks(shortCode);
 
   try {
     // check cache to get redirect long url
@@ -148,13 +151,14 @@ export async function resolveShortCode(
         return null;
       }
 
-      const { click_count, created_at, long_url } = result.rows[0];
+      const { id, click_count, created_at, long_url } = result.rows[0];
       const TTL = getTTL(Number(click_count), new Date(created_at));
 
       const now = new Date();
 
       //save to cache
       await set({
+        id: id.toString(),
         shortCode: `url:${String(shortCode)}`,
         longURL: long_url,
         clickCount: click_count,
@@ -164,10 +168,8 @@ export async function resolveShortCode(
         cachedTtl: TTL,
       });
 
-      await incr(clicksKey);
-
       // redirect
-      return { status: 302, data: long_url };
+      return { status: 302, url_id: id.toString(), data: long_url };
     }
     //cache hit logging
     cacheHitLog({
@@ -178,14 +180,12 @@ export async function resolveShortCode(
       route: "redirect-to-long-url",
     });
 
-    // incrementing click count
-    await incr(clicksKey);
-
     //refreshing ttl if near to expire
     await refreshTtl(cacheResult);
 
     return {
       status: 302,
+      url_id: cacheResult.id,
       data: cacheResult.longURL,
     };
   } catch (error: any) {
