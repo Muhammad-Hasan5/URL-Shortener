@@ -20,6 +20,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   RATE_LIMIT_WINDOWSMS: z.coerce.number().default(60000),
   GEO_CITY_DB_PATH: z.string(),
+  IP_HASH_SALT: z.string(),
   NODE_ENV: z
     .enum(["development", "testing", "production"])
     .default("development"),
