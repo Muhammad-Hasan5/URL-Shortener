@@ -4,7 +4,6 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 
 // prefix for key
 const SETGET_PREFIX = "url:";
-const INCR_PREFIX = "url:clicks:";
 
 // saving to cache
 export async function set(cacheRecord: CacheRecord): Promise<void> {
@@ -26,11 +25,6 @@ export async function get(shortCode: string): Promise<CacheRecord | null> {
   );
   if (!res) return null;
   return JSON.parse(res);
-}
-
-// icrementing click count
-export async function incr(shortCode: string): Promise<void> {
-  await safeRedis(() => redis.incr(`${INCR_PREFIX}${shortCode}`));
 }
 
 export async function getKeyTTL(shortCode: string): Promise<number | null> {
