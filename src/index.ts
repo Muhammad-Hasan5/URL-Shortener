@@ -5,8 +5,8 @@ import logger from "./config/pino-logging/index.pino.js";
 import env from "./config/env.js";
 import { SnowflakeGenerator } from "./utils/snowflakeID-utils/snowflakeID.utils.js";
 import { claimMachineID } from "./utils/snowflakeID-utils/machineIdLease.utils.js";
-import { worker } from "./jobs/clickFlush.job.js";
-import { clickCountScheduler } from "./analytics/analytics.queue.js";
+import { analyticsQueue } from "./analytics/analytics.queue.js";
+import { analyticsWorker } from "./analytics/analytics.worker.js";
 
 /*
 logger.info({
@@ -40,9 +40,9 @@ process.on("SIGTERM", async (): Promise<any> => {
   server.close(async () => {
     await primaryPool.end();
     await replicaPool.end();
+    await analyticsWorker.close();
+    await analyticsQueue.close();
     await redis.quit();
-    await worker.close();
-    await clickCountScheduler.close();
     process.exit(0);
   });
 });
