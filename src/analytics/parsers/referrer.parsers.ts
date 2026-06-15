@@ -29,15 +29,17 @@ export function parseReferrer(refHeader: any) {
       type: "social",
       domain,
       name: capitalize(domain.split(".")[0] || domain),
+      referrerURL: refHeader,
     };
   if (SEARCH.some((s) => domain.endsWith(s)))
     return {
       type: "search",
       domain,
       name: capitalize(domain.split(".")[0] || domain),
+      referrerURL: refHeader,
     };
   if (EMAIL.some((s) => domain.endsWith(s)))
-    return { type: "email", domain, name: "Email" };
+    return { type: "email", domain, name: "Email", referrerURL: refHeader };
 
-  return { type: "website", domain, name: domain };
+  return { type: "website", domain, name: domain, referrerURL: refHeader };
 }
