@@ -2,9 +2,7 @@ import UAParser from "ua-parser-js";
 import { isbot } from "isbot";
 import type { Request } from "express";
 
-export function parseDevice(req: Request) {
-  const userAgent = req.headers["user-agent"];
-
+export function parseDevice(userAgent: any) {
   if (!userAgent) return null;
 
   const bot = isbot(userAgent);
