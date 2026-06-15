@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { resolveLongUrl, resolveShortCode } from "../services/url.service.js";
+import { analyticsQueue } from "../analytics/analytics.queue.js";
+import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
 
 // covnert long url to SHORT one
 export const shortURL = async (req: Request, res: Response) => {
@@ -68,5 +70,18 @@ export const redirect = async (req: Request, res: Response) => {
     });
   }
 
-  return res.redirect(302, String(result.data));
+  res.redirect(302, String(result.data));
+
+  analyticsQueue.add(
+    "click",
+    {
+      short_code: shortCode,
+      url_id: result.url_id,
+      ip: getClientIp(req),
+      user_agent: req.headers["user-agent"],
+      referrer: req.headers["referer"],
+      clicked_at: new Date().toISOString(),
+    },
+    { removeOnComplete: 500, attempts: 3 },
+  );
 };
