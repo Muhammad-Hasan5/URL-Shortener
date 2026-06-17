@@ -46,7 +46,7 @@ export const analyticsWorker = new Worker(
         referrer_type: source.type,
         referrer_name: source.name,
       }),
-      incr_click_counts(short_code, location.countryCode, isBot),
+      incr_click_counts(short_code, location.countryCode, isBot, source.type),
     ]);
   },
   {
