@@ -62,24 +62,70 @@ export const insert_into_url_clicks = async (data: any) => {
       is_unique,
     ],
   );
-  logger.info("analytics:insert_into_url_clicks:succeeded")
+  logger.info("analytics:insert_into_url_clicks:succeeded");
 };
 
 export const incr_click_counts = async (
   shortCode: string,
   countryCode: string | undefined,
   isBot: boolean,
+  referrerType: string,
 ): Promise<void> => {
-  await Promise.all([
-    safeRedis(async () => await redis.incr(`clicks:total:${shortCode}`)),
-    !isBot &&
-      safeRedis(async () => await redis.incr(`clicks:human:${shortCode}`)),
-    !isBot &&
-      countryCode &&
-      safeRedis(
-        async () =>
-          await redis.zincrby(`clicks:country:${shortCode}`, 1, countryCode),
-      ),
-  ]);
+  const p = redis.pipeline();
+  p.incr(`stats:${shortCode}:total`);
+  if (!isBot) {
+    p.incr(`stats:${shortCode}:human`);
+    if (countryCode) {
+      p.zincrby(`stats:${shortCode}:countries`, 1, countryCode);
+    }
+    p.zincrby(`stats:${shortCode}:refTypes`, 1, referrerType);
+  }
+  await safeRedis(async () => await p.exec());
   logger.info("analytics:incr_click_counts:succeeded");
 };
+
+export const aggregateRecentClicks = async () => {
+  const oneMinAgo = new Date(Date.now() - 60_000);
+
+  // Read raw clicks from the last 60 seconds
+  const clicks = await db.query(
+    `
+    SELECT url_id, DATE(clicked_at) as date,
+           country_code, device_type, referrer_type, browser_name,
+           COUNT(*) as total,
+           COUNT(*) FILTER (WHERE is_unique) as unique_c,
+           COUNT(*) FILTER (WHERE is_bot)   as bots
+    FROM   url_clicks
+    WHERE  clicked_at >= $1
+    GROUP  BY url_id, date, country_code, device_type, referrer_type, browser_name
+  `,
+    [oneMinAgo],
+  );
+
+  // Upsert into the aggregate table (CONFLICT = add to existing row)
+  for (const row of clicks.rows) {
+    await db.query(
+      `
+      INSERT INTO url_click_daily (url_id,date,country_code,device_type,
+        referrer_type,browser_name,total_clicks,unique_clicks,bot_clicks)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (url_id,date,country_code,device_type,referrer_type,browser_name)
+      DO UPDATE SET
+        total_clicks  = url_click_daily.total_clicks  + EXCLUDED.total_clicks,
+        unique_clicks = url_click_daily.unique_clicks + EXCLUDED.unique_clicks,
+        bot_clicks    = url_click_daily.bot_clicks    + EXCLUDED.bot_clicks
+    `,
+      [
+        row.url_id,
+        row.date,
+        row.country_code,
+        row.device_type,
+        row.referrer_type,
+        row.browser_name,
+        row.total,
+        row.unique_c,
+        row.bots,
+      ],
+    );
+  }
+}
