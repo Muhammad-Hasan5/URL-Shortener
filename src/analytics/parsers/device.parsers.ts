@@ -1,6 +1,5 @@
 import UAParser from "ua-parser-js";
 import { isbot } from "isbot";
-import type { Request } from "express";
 
 export function parseDevice(userAgent: any) {
   if (!userAgent) return null;
