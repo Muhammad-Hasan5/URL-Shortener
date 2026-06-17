@@ -10,7 +10,7 @@ done
 echo "Primary is ready"
 
 if [ -s "$PGDATA/PG_VERSION" ]; then
-  echo "✓ Replica data already exists, skipping pg_basebackup"
+  echo "Replica data already exists, skipping pg_basebackup"
   exit 0
 fi
 
