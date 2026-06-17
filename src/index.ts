@@ -7,6 +7,8 @@ import { SnowflakeGenerator } from "./utils/snowflakeID-utils/snowflakeID.utils.
 import { claimMachineID } from "./utils/snowflakeID-utils/machineIdLease.utils.js";
 import { analyticsQueue } from "./analytics/analytics.queue.js";
 import { analyticsWorker } from "./analytics/analytics.worker.js";
+import { aggregationQueue } from "./analytics/aggregation/queue.aggregation.js";
+import { aggregationWorker } from "./analytics/aggregation/scheduler.aggregation.js";
 
 /*
 logger.info({
@@ -38,11 +40,15 @@ process.on("SIGTERM", async (): Promise<any> => {
   await redis.del(`snowflake:machine:${machineId}`);
 
   server.close(async () => {
-    await primaryPool.end();
-    await replicaPool.end();
-    await analyticsWorker.close();
-    await analyticsQueue.close();
-    await redis.quit();
+    await Promise.all([
+      primaryPool.end(),
+      replicaPool.end(),
+      analyticsWorker.close(),
+      aggregationWorker.close(),
+      analyticsQueue.close(),
+      aggregationQueue.close(),
+      redis.quit(),
+    ]);
     process.exit(0);
   });
 });
