@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { resolveLongUrl, resolveShortCode } from "../services/url.service.js";
+import {
+  resolveLongUrl,
+  resolveShortCode,
+} from "../services/url.service.js";
 import { analyticsQueue } from "../analytics/analytics.queue.js";
 import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
 
@@ -40,7 +43,7 @@ export const shortURL = async (req: Request, res: Response) => {
 
   return res.status(201).json({
     success: true,
-    data: result.data,
+    data: { url_id: result.url_id, url: result.data },
     msg: "url has been shorten successfully",
   });
 };
@@ -85,3 +88,4 @@ export const redirect = async (req: Request, res: Response) => {
     { removeOnComplete: 500, attempts: 3 },
   );
 };
+
