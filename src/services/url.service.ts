@@ -3,8 +3,14 @@ import {
   checkIfAlreadyExists,
   createUrl,
   findByShortCode,
+  getUrlIdFromDb,
 } from "../repositories/url.repository.js";
-import { set, get } from "../repositories/cache.repository.js";
+import {
+  set,
+  get,
+  setUrlId,
+  getUrlID,
+} from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
@@ -18,6 +24,7 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 // perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
   url: (shortCode: string) => `url:${shortCode}`,
+  url_id: (shortCode: string) => `url:${shortCode}:id`,
 };
 
 type ServiceResponse = {
@@ -87,6 +94,7 @@ export async function resolveLongUrl(
 
         return {
           status: 201,
+          url_id: result.id.toString(),
           data: `${baseURL}/${result.shortCode}`,
         };
       }
@@ -106,6 +114,7 @@ export async function resolveLongUrl(
 
       return {
         status: 200,
+        url_id: cacheResult.id.toString(),
         data: `${baseURL}/${cacheResult.shortCode}`,
       };
     } catch (error: any) {
@@ -193,3 +202,53 @@ export async function resolveShortCode(
     return null;
   }
 }
+
+//TODO: getShortURL_ID()
+export const getUrlId = async (
+  shortCode: string,
+  requestId: any,
+): Promise<ServiceResponse | null> => {
+  const cacheKey = keys.url_id(shortCode);
+  try {
+    const cacheResult = await getUrlID(cacheKey);
+
+    if (!cacheResult) {
+      //cache miss logging
+      cacheMissLog({
+        reqId: requestId,
+        reqMethod: "GET",
+        cacheMethod: "GET",
+        route: "fetch-shortCode-id",
+      });
+
+      const res = await getUrlIdFromDb(shortCode);
+      if (!res || res.rows.length == 0) {
+        return null;
+      }
+
+      const { id } = res.rows[0];
+
+      await setUrlId(id, shortCode); //cache
+
+      return {
+        status: 200,
+        data: id,
+      };
+    }
+
+    cacheHitLog({
+      reqId: requestId,
+      reqMethod: "GET",
+      cacheMethod: "GET",
+      route: "fetch-shortUrl-id",
+    });
+
+    return {
+      status: 200,
+      data: cacheResult,
+    };
+  } catch (error: any) {
+    logger.error({ err: error }, "resolveShortCode.service.failed");
+    return null;
+  }
+};
