@@ -79,6 +79,9 @@ export const incr_click_counts = async (
       p.zincrby(`stats:${shortCode}:countries`, 1, countryCode);
     }
     p.zincrby(`stats:${shortCode}:refTypes`, 1, referrerType);
+    const hour = new Date().toISOString().slice(0, 13); 
+    p.incr(`stats:${shortCode}:hour:${hour}`);
+    p.expire(`stats:${shortCode}:hour:${hour}`, 172800); 
   }
   await safeRedis(async () => await p.exec());
   logger.info("analytics:incr_click_counts:succeeded");
