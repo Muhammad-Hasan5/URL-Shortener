@@ -53,3 +53,18 @@ export const checkIfAlreadyExists = async (
     return null;
   }
 };
+
+//TODO: fetch short URL ID
+export const getUrlIdFromDb = async (
+  shortCode: string,
+): Promise<QueryResult<any> | null> => {
+  try {
+    const db = getPool("read");
+    let queryText = "SELECT id FROM urls where short_code = $1";
+    let res = await db.query(queryText, [shortCode]);
+    return res;
+  } catch (error: any) {
+    logger.error("error fetching url from DB", error.stack);
+    return null;
+  }
+};
