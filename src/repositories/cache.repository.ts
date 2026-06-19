@@ -39,3 +39,17 @@ export async function updateKeyTTL(
     async () => await redis.expire(SETGET_PREFIX + shortCode, newTTL),
   );
 }
+
+export async function setUrlId(id: string, shortCode: string){
+  const res = await safeRedis(async () => {
+    await redis.set(`url:${shortCode}:id`, id, "EX", 600000)
+  })
+}
+
+export async function getUrlID(shortCode: string): Promise<string | null>{
+  const res = await safeRedis(async () => {
+    await redis.get(`url:${shortCode}:id`)
+  })
+  if(!res) return null;
+  return res
+}
