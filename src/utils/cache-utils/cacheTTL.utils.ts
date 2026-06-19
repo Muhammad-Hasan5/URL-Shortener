@@ -26,7 +26,7 @@ export function getTTL(clickCount: number, created_at: Date): number {
 }
 
 //it's a helperrrrrrrrrrrr func.
-function _shouldRefresh(
+function shouldRefresh(
   remainingTtl: number,
   originalTtl: number,
   beta = 1.0,
@@ -42,7 +42,7 @@ function _shouldRefresh(
 export async function refreshTtl(cacheResult: CacheRecord) {
   const remainingTtl = await getKeyTTL(cacheResult.shortCode);
 
-  if (_shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
+  if (shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
     const freshTtl = getTTL(
       cacheResult.clickCount,
       new Date(cacheResult.createdAt),
