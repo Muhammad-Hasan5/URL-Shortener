@@ -7,6 +7,10 @@ declare global {
     export interface Request {
       id?: string | any;
       log?: Logger;
+      user?: {
+        id: string,
+        email: string,
+      }
     }
   }
 }
