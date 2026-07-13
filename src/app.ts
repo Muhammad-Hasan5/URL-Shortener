@@ -2,8 +2,11 @@ import express from "express";
 import urlRouter from "./routes/url.route.js";
 import healthCheckRouter from "./routes/healthcheck.route.js";
 import analyticsRouter from "./routes/analytics.route.js";
+import cookieParser from "cookie-parser"
 
 const app = express();
+
+app.use(cookieParser())
 
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ limit: "5mb", extended: true }));
