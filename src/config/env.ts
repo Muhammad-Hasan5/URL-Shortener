@@ -24,9 +24,20 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "testing", "production"])
     .default("development"),
+  ACCESS_TOKEN_SECRET: z.string(),
+  REFRESH_TOKEN_SECRET: z.string(),
+  ACCESS_TOKEN_EXPIRY: z.string(),
+  REFRESH_TOKEN_EXPIRY: z.string(),
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.string(),
+  SMTP_SECURE: z.string(),
+  SMTP_USER: z.string(),
+  SMTP_PASS: z.string(),
+  MAIL_FROM: z.string(),
+  APP_URL: z.string(),
 });
 
-type Env = z.infer<typeof envSchema>
+type Env = z.infer<typeof envSchema>;
 
 const env: Env = envSchema.parse(process.env);
 
