@@ -41,8 +41,6 @@ type authServiceResponse = {
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
-// Strips fields that must never leave the server (password hash, tokens,
-// verification/reset secrets) before a user object is handed to a controller.
 const sanitizeUser = (user: any) => {
   if (!user) return null;
   const {
@@ -65,9 +63,6 @@ export const registerUserService = async (
 ): Promise<authServiceResponse> => {
   const exists = await checkIfUserExists(user.email);
 
-  // FIX: checkIfUserExists resolves to the row itself (or undefined), not a
-  // `{ rows: [...] }` result object, so `exists?.rows.length` was always
-  // undefined and never actually blocked duplicate signups.
   if (exists) {
     return {
       status: 499,
@@ -146,10 +141,6 @@ export const loginUserService = async (
     };
   }
 
-  // FIX: this was previously not awaited, so `valid` was always a (truthy)
-  // Promise object and a wrong password would silently succeed and log the
-  // user in. Also, previously there was no branch that ever rejected a bad
-  // password - it just fell through to issuing tokens.
   const valid = await verifyPassword(user.password_hash, password);
 
   if (!valid) {
@@ -168,10 +159,6 @@ export const loginUserService = async (
     };
   }
 
-  // FIX: previously this block ran unconditionally right after incrementing
-  // failed attempts, which reset the counter to 0 on every login attempt
-  // (even failed ones) and made the lockout logic permanently unreachable.
-  // It now only runs once we know the password was actually correct.
   user.failed_login_attempts = 0;
   user.locked_until = null;
 
@@ -260,8 +247,6 @@ export const deleteUserService = async (
     return { status: 404, error: "user not found", data: null };
   }
 
-  // Require the current password as confirmation before a destructive,
-  // irreversible-feeling action like account deletion.
   if (password) {
     const valid = await verifyPassword(user.password_hash, password);
     if (!valid) {
@@ -317,12 +302,6 @@ export const resendEmailVerificationService = async (
 ): Promise<authServiceResponse> => {
   const user = await fetchUserByEmail(email);
 
-  // NOTE: returning 404 here (and in resetPasswordRequestService below)
-  // leaks whether an email is registered. This matches the existing
-  // login-flow convention in this codebase, but for a production system
-  // you may want both endpoints to always return a generic
-  // "if that account exists, an email has been sent" 200 response instead,
-  // to avoid user enumeration.
   if (!user) {
     return { status: 404, error: "user with this email not exist", data: null };
   }
@@ -441,9 +420,6 @@ export const refreshAccessTokenService = async (
     return { status: 401, error: "invalid refresh token", data: null };
   }
 
-  // The refresh token must match the one on record - this invalidates old
-  // refresh tokens as soon as a newer one has been issued (or the user has
-  // logged out), preventing reuse of a stolen/rotated-out token.
   if (user.refresh_token !== incomingRefreshToken) {
     return { status: 401, error: "refresh token has been revoked", data: null };
   }
