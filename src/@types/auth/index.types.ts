@@ -1,11 +1,34 @@
-import z from "zod"
+import z from "zod";
 
 export const registerUserObject = z.object({
-    firstName: z.string(),
-    lastName: z.string(),
-    email: z.email(),
-    password: z.string().min(8, "password must contain atleast 8 characters.")
-})
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.email(),
+  password: z.string().min(8, "password must contain atleast 8 characters."),
+});
+
+export const loginSchemaObject = z.object({
+  email: z.email(),
+  password: z.string(),
+});
+
+export const incomingPassword = z.object({
+  password: z.string(),
+});
+
+export const incomingEmail = z.object({
+  email: z.email(),
+});
+
+export const changePasswordObject = z.object({
+  oldPassword: z.string(),
+  newPassword: z.string(),
+});
+
+export const resetForgotPasswordObject = z.object({
+  token: z.string(),
+  newPassword: z.string(),
+});
 
 export type sanitizedUser = {
   id: string;
@@ -20,4 +43,4 @@ export type sanitizedUser = {
   updated_at: Date;
 };
 
-export type registerUserType = z.infer<typeof registerUserObject>
+export type registerUserType = z.infer<typeof registerUserObject>;
