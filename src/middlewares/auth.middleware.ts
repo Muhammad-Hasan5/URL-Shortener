@@ -2,9 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../utils/auth-utils/tokens.utils.js";
 import { fetchUserById } from "../repositories/auth.repository.js";
 
-// Populates req.user for any route placed behind it. Reads the access token
-// from the httpOnly cookie first, falling back to an Authorization header
-// (useful for non-browser clients hitting the URL shortener's API directly).
 export const verifyJWT = async (
   req: Request,
   res: Response,
