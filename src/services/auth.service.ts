@@ -1,0 +1,458 @@
+import type { Request } from "express";
+import type { registerUserType } from "../@types/auth/index.types.js";
+import {
+  checkIfUserExists,
+  fetchUserByEmail,
+  fetchUserById,
+  fetchUserByEmailVerificationToken,
+  fetchUserByPasswordResetToken,
+  insertNewUser,
+  markEmailAsVerified,
+  setPasswordResetToken,
+  softDeleteUser,
+  updateUser,
+  updateUserPassword,
+  updateVerificationTokens,
+} from "../repositories/auth.repository.js";
+import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "../utils/auth-utils/email.utils.js";
+import {
+  hashPassword,
+  verifyPassword,
+} from "../utils/auth-utils/hashPassword.utils.js";
+import {
+  generateAccessToken,
+  generateRandomToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../utils/auth-utils/tokens.utils.js";
+import { haship } from "../utils/analytics-utils/haship.js";
+import crypto from "crypto";
+
+type authServiceResponse = {
+  status: number;
+  error?: any;
+  data?: any;
+};
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
+// Strips fields that must never leave the server (password hash, tokens,
+// verification/reset secrets) before a user object is handed to a controller.
+const sanitizeUser = (user: any) => {
+  if (!user) return null;
+  const {
+    password_hash,
+    refresh_token,
+    email_verification_token,
+    email_verification_expires_at,
+    password_reset_token,
+    password_reset_expires_at,
+    ...safeUser
+  } = user;
+  return safeUser;
+};
+
+const hashToken = (token: string) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+export const registerUserService = async (
+  user: registerUserType,
+): Promise<authServiceResponse> => {
+  const exists = await checkIfUserExists(user.email);
+
+  // FIX: checkIfUserExists resolves to the row itself (or undefined), not a
+  // `{ rows: [...] }` result object, so `exists?.rows.length` was always
+  // undefined and never actually blocked duplicate signups.
+  if (exists) {
+    return {
+      status: 499,
+      error: "user with this email already exists",
+      data: null,
+    };
+  }
+
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    generateRandomToken("email");
+
+  const hashedPass = await hashPassword(user.password);
+
+  const newUser = await insertNewUser({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    password: hashedPass,
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpiry: tokenExpiry,
+  });
+
+  const isUserCreated = await fetchUserById(newUser.id);
+
+  if (!isUserCreated) {
+    return {
+      status: 404,
+      error: "unable to find new user, not created",
+      data: null,
+    };
+  }
+
+  await sendVerificationEmail(isUserCreated.email, unHashedToken);
+
+  return {
+    status: 201,
+    data: { user: sanitizeUser(isUserCreated) },
+  };
+};
+
+export const loginUserService = async (
+  email: string,
+  password: string,
+  req: Request,
+): Promise<authServiceResponse> => {
+  const user = await fetchUserByEmail(email);
+  if (!user) {
+    return {
+      status: 404,
+      error: "user with this email not exist",
+      data: null,
+    };
+  }
+
+  if (user.status !== "active") {
+    return {
+      status: 403,
+      error: "account is not active",
+      data: null,
+    };
+  }
+
+  if (!user.email_verified) {
+    return {
+      status: 400,
+      error: "email is not verified",
+      data: null,
+    };
+  }
+
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    return {
+      status: 403,
+      error: "account is temporarily locked, try again later",
+      data: null,
+    };
+  }
+
+  // FIX: this was previously not awaited, so `valid` was always a (truthy)
+  // Promise object and a wrong password would silently succeed and log the
+  // user in. Also, previously there was no branch that ever rejected a bad
+  // password - it just fell through to issuing tokens.
+  const valid = await verifyPassword(user.password_hash, password);
+
+  if (!valid) {
+    user.failed_login_attempts = (user.failed_login_attempts || 0) + 1;
+
+    if (user.failed_login_attempts >= MAX_FAILED_ATTEMPTS) {
+      user.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MS);
+    }
+
+    await updateUser(user);
+
+    return {
+      status: 401,
+      error: "invalid credentials",
+      data: null,
+    };
+  }
+
+  // FIX: previously this block ran unconditionally right after incrementing
+  // failed attempts, which reset the counter to 0 on every login attempt
+  // (even failed ones) and made the lockout logic permanently unreachable.
+  // It now only runs once we know the password was actually correct.
+  user.failed_login_attempts = 0;
+  user.locked_until = null;
+
+  user.last_login_at = new Date();
+
+  const accessToken = generateAccessToken(user.id, user.email);
+  const refreshToken = generateRefreshToken(user.email);
+
+  user.refresh_token = refreshToken;
+
+  const ip = getClientIp(req);
+  const hashedIP = ip ? haship(ip, new Date()) : null;
+
+  user.last_login_ip = hashedIP;
+
+  const loggedInUser = await updateUser(user);
+
+  return {
+    status: 200,
+    data: {
+      loggedInUser: sanitizeUser(loggedInUser),
+      refreshToken,
+      accessToken,
+    },
+  };
+};
+
+export const logoutUserService = async (
+  id?: string,
+): Promise<authServiceResponse> => {
+  if (!id) {
+    return {
+      status: 404,
+      error: "user with this ID not exists",
+      data: null,
+    };
+  }
+
+  const user = await fetchUserById(id);
+
+  if (!user) {
+    return {
+      status: 404,
+      error: "user with this ID not exists",
+      data: null,
+    };
+  }
+
+  user.refresh_token = null;
+
+  await updateUser(user);
+
+  return {
+    status: 200,
+    data: null,
+  };
+};
+
+export const getCurrentUserService = async (
+  id?: string,
+): Promise<authServiceResponse> => {
+  if (!id) {
+    return { status: 401, error: "unauthorized", data: null };
+  }
+
+  const user = await fetchUserById(id);
+
+  if (!user) {
+    return { status: 404, error: "user not found", data: null };
+  }
+
+  return { status: 200, data: sanitizeUser(user) };
+};
+
+export const deleteUserService = async (
+  id?: string,
+  password?: string,
+): Promise<authServiceResponse> => {
+  if (!id) {
+    return { status: 401, error: "unauthorized", data: null };
+  }
+
+  const user = await fetchUserById(id);
+
+  if (!user) {
+    return { status: 404, error: "user not found", data: null };
+  }
+
+  // Require the current password as confirmation before a destructive,
+  // irreversible-feeling action like account deletion.
+  if (password) {
+    const valid = await verifyPassword(user.password_hash, password);
+    if (!valid) {
+      return { status: 401, error: "invalid credentials", data: null };
+    }
+  }
+
+  await softDeleteUser(id);
+
+  return { status: 200, data: null };
+};
+
+export const verifyEmailService = async (
+  token?: string,
+): Promise<authServiceResponse> => {
+  if (!token) {
+    return { status: 400, error: "verification token is required", data: null };
+  }
+
+  const hashedToken = hashToken(token);
+  const user = await fetchUserByEmailVerificationToken(hashedToken);
+
+  if (!user) {
+    return {
+      status: 400,
+      error: "invalid or expired verification token",
+      data: null,
+    };
+  }
+
+  if (user.email_verified) {
+    return { status: 200, data: sanitizeUser(user) };
+  }
+
+  if (
+    !user.email_verification_expires_at ||
+    new Date(user.email_verification_expires_at) < new Date()
+  ) {
+    return {
+      status: 400,
+      error: "invalid or expired verification token",
+      data: null,
+    };
+  }
+
+  const verifiedUser = await markEmailAsVerified(user.id);
+
+  return { status: 200, data: sanitizeUser(verifiedUser) };
+};
+
+export const resendEmailVerificationService = async (
+  email: string,
+): Promise<authServiceResponse> => {
+  const user = await fetchUserByEmail(email);
+
+  // NOTE: returning 404 here (and in resetPasswordRequestService below)
+  // leaks whether an email is registered. This matches the existing
+  // login-flow convention in this codebase, but for a production system
+  // you may want both endpoints to always return a generic
+  // "if that account exists, an email has been sent" 200 response instead,
+  // to avoid user enumeration.
+  if (!user) {
+    return { status: 404, error: "user with this email not exist", data: null };
+  }
+
+  if (user.email_verified) {
+    return { status: 400, error: "email is already verified", data: null };
+  }
+
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    generateRandomToken("email");
+
+  await updateVerificationTokens(user.email, hashedToken, tokenExpiry);
+  await sendVerificationEmail(user.email, unHashedToken);
+
+  return { status: 200, data: null };
+};
+
+export const resetPasswordRequestService = async (
+  email: string,
+): Promise<authServiceResponse> => {
+  const user = await fetchUserByEmail(email);
+
+  if (!user) {
+    return { status: 404, error: "user with this email not exist", data: null };
+  }
+
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    generateRandomToken("password");
+
+  await setPasswordResetToken(user.email, hashedToken, tokenExpiry);
+  await sendPasswordResetEmail(user.email, unHashedToken);
+
+  return { status: 200, data: null };
+};
+
+export const resetForgotPasswordService = async (
+  token: string,
+  newPassword: string,
+): Promise<authServiceResponse> => {
+  if (!token || !newPassword) {
+    return {
+      status: 400,
+      error: "token and new password are required",
+      data: null,
+    };
+  }
+
+  const hashedToken = hashToken(token);
+  const user = await fetchUserByPasswordResetToken(hashedToken);
+
+  if (!user) {
+    return { status: 400, error: "invalid or expired reset token", data: null };
+  }
+
+  if (
+    !user.password_reset_expires_at ||
+    new Date(user.password_reset_expires_at) < new Date()
+  ) {
+    return { status: 400, error: "invalid or expired reset token", data: null };
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+  await updateUserPassword(user.id, hashedPassword);
+
+  return { status: 200, data: null };
+};
+
+export const changePasswordService = async (
+  id: string | undefined,
+  oldPassword: string,
+  newPassword: string,
+): Promise<authServiceResponse> => {
+  if (!id) {
+    return { status: 401, error: "unauthorized", data: null };
+  }
+
+  const user = await fetchUserById(id);
+
+  if (!user) {
+    return { status: 404, error: "user not found", data: null };
+  }
+
+  const valid = await verifyPassword(user.password_hash, oldPassword);
+
+  if (!valid) {
+    return { status: 401, error: "current password is incorrect", data: null };
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+  await updateUserPassword(user.id, hashedPassword);
+
+  return { status: 200, data: null };
+};
+
+export const refreshAccessTokenService = async (
+  incomingRefreshToken?: string,
+): Promise<authServiceResponse> => {
+  if (!incomingRefreshToken) {
+    return { status: 401, error: "refresh token is required", data: null };
+  }
+
+  let decoded: { email: string };
+  try {
+    decoded = verifyRefreshToken(incomingRefreshToken);
+  } catch (error) {
+    return {
+      status: 401,
+      error: "invalid or expired refresh token",
+      data: null,
+    };
+  }
+
+  const user = await fetchUserByEmail(decoded.email);
+
+  if (!user) {
+    return { status: 401, error: "invalid refresh token", data: null };
+  }
+
+  // The refresh token must match the one on record - this invalidates old
+  // refresh tokens as soon as a newer one has been issued (or the user has
+  // logged out), preventing reuse of a stolen/rotated-out token.
+  if (user.refresh_token !== incomingRefreshToken) {
+    return { status: 401, error: "refresh token has been revoked", data: null };
+  }
+
+  const accessToken = generateAccessToken(user.id, user.email);
+  const refreshToken = generateRefreshToken(user.email);
+
+  user.refresh_token = refreshToken;
+  await updateUser(user);
+
+  return { status: 200, data: { accessToken, refreshToken } };
+};
