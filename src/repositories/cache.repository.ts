@@ -10,7 +10,7 @@ export async function set(cacheRecord: CacheRecord): Promise<void> {
   await safeRedis(
     async () =>
       await redis.set(
-        SETGET_PREFIX + cacheRecord.shortCode,
+       `${SETGET_PREFIX}:${cacheRecord.shortCode}:${cacheRecord.user_id}`,
         JSON.stringify(cacheRecord),
         "EX",
         cacheRecord.cachedTtl,
