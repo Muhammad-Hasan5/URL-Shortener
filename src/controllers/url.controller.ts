@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import {
+  deleteShortUrl,
+  fetchAllUrls,
   resolveLongUrl,
   resolveShortCode,
 } from "../services/url.service.js";
@@ -10,6 +12,7 @@ import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
 export const shortURL = async (req: Request, res: Response) => {
   //fetch
   const { longURL } = req.body;
+  const userId = req.user?.id;
 
   //validate incoming long url & expiry date
   try {
@@ -23,7 +26,7 @@ export const shortURL = async (req: Request, res: Response) => {
   }
 
   //resolve
-  const result = await resolveLongUrl(req.id, String(longURL));
+  const result = await resolveLongUrl(req.id, String(longURL), userId!);
 
   // response
   if (result === null) {
@@ -52,6 +55,7 @@ export const shortURL = async (req: Request, res: Response) => {
 export const redirect = async (req: Request, res: Response) => {
   //fetch
   const shortCode = req.params.shortCode;
+  const userId = req.user?.id;
 
   //validate param: short code
   if (!shortCode) {
@@ -63,7 +67,7 @@ export const redirect = async (req: Request, res: Response) => {
   }
 
   //resolve
-  const result = await resolveShortCode(req.id, String(shortCode));
+  const result = await resolveShortCode(req.id, String(shortCode), userId!);
 
   //response
   if (result === null) {
@@ -89,3 +93,50 @@ export const redirect = async (req: Request, res: Response) => {
   );
 };
 
+//fetch all urls of a user
+export const getUrlsList = async (req: Request, res: Response) => {
+  const reqId = req.id;
+  const userId = req.user?.id;
+
+  const result = await fetchAllUrls(reqId, userId!);
+
+  if (result?.status === 404) {
+    return res.status(404).json({
+      status: 404,
+      data: null,
+      msg: "unable to fetch user's urls from database",
+    });
+  } else if (result?.status == 200 && result?.data == null) {
+    return res.status(200).json({
+      status: 200,
+      data: null,
+      msg: "user have no short urls generated",
+    });
+  }
+  return res.status(200).json({
+    status: 200,
+    data: result?.data,
+    msg: "user have no short urls generated",
+  });
+};
+
+export const deleteUrl = async (req: Request, res: Response) => {
+  const shortCode = req.params.shortCode;
+  const userId = req.user?.id;
+
+  const result = await deleteShortUrl(userId!, String(shortCode));
+
+  if (result?.status == 500) {
+    return res.status(500).json({
+      status: 500,
+      data: null,
+      msg: result?.data,
+    });
+  }
+
+  return res.status(200).json({
+    status: 200,
+    data: null,
+    msg: "url deleted successfully",
+  });
+};
