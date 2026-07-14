@@ -2,14 +2,19 @@ import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
 import {
   checkIfAlreadyExists,
   createUrl,
-  findByShortCode,
+  findByShortCodeAndUserId,
   getUrlIdFromDb,
+  fetchAllByUserId,
+  deleteByShortcodeAndUserid
 } from "../repositories/url.repository.js";
 import {
   set,
   get,
   setUrlId,
   getUrlID,
+  getAllUrlsOfUser,
+  setAllUrlsOfUser,
+  deleteAllUrlsOfUser
 } from "../repositories/cache.repository.js";
 import logger from "../config/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
@@ -25,17 +30,19 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 const keys = {
   url: (shortCode: string) => `url:${shortCode}`,
   url_id: (shortCode: string) => `url:${shortCode}:id`,
+  all_urls: (userId: string) => `All:urls:${userId}`
 };
 
 type ServiceResponse = {
   status: number;
   url_id?: string;
-  data: QueryResult<any> | CacheRecord | string;
+  data?: QueryResult<any> | CacheRecord | string | string[] | null;
 };
 
 export async function resolveLongUrl(
   requestId: any,
   longURL: string,
+  userId: string
 ): Promise<ServiceResponse | null> {
   let attempts: number = 0;
 
@@ -57,7 +64,7 @@ export async function resolveLongUrl(
         });
 
         // checking if already in DB or not
-        const existing = await checkIfAlreadyExists(longURL);
+        const existing = await checkIfAlreadyExists(longURL, userId);
 
         if (existing && (existing?.rows.length as number) > 0) {
           return {
@@ -71,7 +78,11 @@ export async function resolveLongUrl(
           id: result.id.toString(),
           shortCode: result.shortCode,
           longURL,
+          user_id: userId
         });
+
+        //invalidating all stored urls (stale record)
+        await deleteAllUrlsOfUser(keys.all_urls(userId))
 
         const now = new Date();
 
@@ -81,6 +92,7 @@ export async function resolveLongUrl(
         await set({
           id: result.id.toString(),
           shortCode: cacheKey,
+          user_id: userId,
           longURL,
           clickCount: 0,
           createdAt: now.toISOString(),
@@ -130,12 +142,13 @@ export async function resolveLongUrl(
   }
 
   logger.error({ requestId, longURL }, "resolveLongUrl.maxAttemptsExceeded");
-  return null;
+  throw new Error("error resolving long url");
 }
 
 export async function resolveShortCode(
   requestId: any,
   shortCode: string,
+  userId: string
 ): Promise<ServiceResponse | null> {
   const cacheKey = keys.url(shortCode);
 
@@ -153,7 +166,7 @@ export async function resolveShortCode(
       });
 
       // call db to get redirect long url
-      const result = await findByShortCode(shortCode as string);
+      const result = await findByShortCodeAndUserId(shortCode, userId);
 
       //validate DB results
       if (!result || result?.rows.length === 0) {
@@ -169,6 +182,7 @@ export async function resolveShortCode(
       await set({
         id: id.toString(),
         shortCode: `url:${String(shortCode)}`,
+        user_id: userId,
         longURL: long_url,
         clickCount: click_count,
         createdAt: created_at,
@@ -199,14 +213,14 @@ export async function resolveShortCode(
     };
   } catch (error: any) {
     logger.error({ err: error }, "resolveShortCode.service.failed");
-    return null;
+    throw error;
   }
 }
 
-//TODO: getShortURL_ID()
 export const getUrlId = async (
   shortCode: string,
   requestId: any,
+  userId: string,
 ): Promise<ServiceResponse | null> => {
   const cacheKey = keys.url_id(shortCode);
   try {
@@ -221,7 +235,7 @@ export const getUrlId = async (
         route: "fetch-shortCode-id",
       });
 
-      const res = await getUrlIdFromDb(shortCode);
+      const res = await getUrlIdFromDb(shortCode, userId);
       if (!res || res.rows.length == 0) {
         return null;
       }
@@ -248,7 +262,91 @@ export const getUrlId = async (
       data: cacheResult,
     };
   } catch (error: any) {
-    logger.error({ err: error }, "resolveShortCode.service.failed");
-    return null;
+    logger.error({ err: error }, "getUrlId.service.failed");
+    throw error;
   }
 };
+
+export const fetchAllUrls = async (
+  requestId: any,
+  userId: string,
+): Promise<ServiceResponse | null> => {
+  const cacheKey = keys.all_urls(userId);
+  try {
+    const cacheResult = await getAllUrlsOfUser(cacheKey);
+
+    if (!cacheResult) {
+      //cache miss logging
+      cacheMissLog({
+        reqId: requestId,
+        reqMethod: "GET",
+        cacheMethod: "GET",
+        route: "fetch-all-urls",
+      });
+
+      const res = await fetchAllByUserId(userId);
+      if (!res) {
+        return {
+          status: 404,
+          data: null
+        };
+      }
+
+      if(res.rows.length == 0){
+        return {
+          status: 200,
+          data: null
+        }
+      }
+
+      const urls = res.rows
+
+      await setAllUrlsOfUser(userId, {urls}); //cache
+
+      return {
+        status: 200,
+        data: urls,
+      };
+    }
+
+    cacheHitLog({
+      reqId: requestId,
+      reqMethod: "GET",
+      cacheMethod: "GET",
+      route: "fetch-all-urls",
+    });
+
+    return {
+      status: 200,
+      data: cacheResult,
+    };
+  } catch (error: any) {
+    logger.error({ err: error }, "fetchAllUrls.service.failed");
+    throw error;
+  }
+};
+
+
+export const deleteShortUrl = async (
+  userId: string,
+  shortCode: string
+): Promise<ServiceResponse | null> => {
+  try {
+      const res = await deleteByShortcodeAndUserid(userId, shortCode);
+      if(res == null){
+        return {
+          status: 500,
+          data: "error deleting records form db"
+        }
+      }
+      return {
+        status: 200,
+        data: null
+      };
+  } catch (error: any) {
+    logger.error({ err: error }, "deleteUrl.service.failed");
+    throw error;
+  }
+};
+
+
