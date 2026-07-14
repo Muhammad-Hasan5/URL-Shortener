@@ -3,6 +3,7 @@ import { getDataForDashboard } from "../services/analytics.service.js";
 import { getUrlId } from "../services/url.service.js";
 
 export const getDashBoardData = async (req: Request, res: Response) => {
+  const userId = req.user?.id
   const shortCode = req.params.shortCode;
 
   //validate param: short code
@@ -14,7 +15,7 @@ export const getDashBoardData = async (req: Request, res: Response) => {
     });
   }
 
-  const id = await getUrlId(String(shortCode), req.id);
+  const id = await getUrlId(String(shortCode), req.id, userId!);
   if (!id) {
     return res.status(400).json({
       status: 404,
@@ -24,8 +25,10 @@ export const getDashBoardData = async (req: Request, res: Response) => {
   }
 
   const result = await getDataForDashboard(
+
     id.data as string,
     String(shortCode),
+    userId!,
     { rangeInDays: 30 },
   );
 
