@@ -5,7 +5,12 @@ export async function up(knex: Knex): Promise<void> {
     table.bigInteger("id").primary();
     table.string("short_code", 10).notNullable().unique();
     table.text("long_url").notNullable();
-    table.string("user_id").nullable();
+    table
+      .uuid("user_id")
+      .notNullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("CASCADE");
     table.integer("click_count").defaultTo(0).notNullable();
     table.timestamp("created_at", { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp("last_accessed_at", { useTz: true }).nullable();
@@ -14,6 +19,7 @@ export async function up(knex: Knex): Promise<void> {
 
     //indexes
     table.index(["short_code"]);
+    table.index(["user_id"]);
     table.index(["created_at"]);
     table.index(["long_url"]);
   });
