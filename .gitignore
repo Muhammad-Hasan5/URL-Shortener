@@ -1,3 +1,4 @@
 node_modules
 .env
 dist/
+GeoLite2-City.mmdb
