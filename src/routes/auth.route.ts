@@ -14,28 +14,52 @@ import {
 } from "../controllers/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validateRequest } from "../middlewares/validate.middleware.js";
-import { registerUserObject, loginSchemaObject, incomingPassword, incomingEmail, changePasswordObject, resetForgotPasswordObject} from "../@types/auth/index.types.js";
+import {
+  registerUserObject,
+  loginSchemaObject,
+  incomingPassword,
+  incomingEmail,
+  changePasswordObject,
+  resetForgotPasswordObject,
+} from "../@types/auth/index.types.js";
 
 const router = Router();
 
 // Public routes
-router.post("/register", validateRequest(registerUserObject), registerUser);
-router.post("/login", validateRequest(loginSchemaObject), loginUser);
-router.post("/refresh-token", refreshAccessToken);
-router.get("/verify-email", validateRequest(incomingPassword), verifyEmail);
-router.post("/resend-email-verification", resendEmailVerification);
 router.post(
-  "/reset-password-request",
+  "api/v1/register",
+  validateRequest(registerUserObject),
+  registerUser,
+);
+router.post("api/v1/login", validateRequest(loginSchemaObject), loginUser);
+router.post("api/v1/refresh-token", refreshAccessToken);
+router.get(
+  "api/v1/verify-email",
+  validateRequest(incomingPassword),
+  verifyEmail,
+);
+router.post("api/v1/resend-email-verification", resendEmailVerification);
+router.post(
+  "api/v1/reset-password-request",
   validateRequest(incomingEmail),
   resetPasswordRequest,
 );
-router.post("/reset-forgot-password", validateRequest(resetForgotPasswordObject), resetForgotPassword);
-//protected
-router.post("/logout", verifyJWT, logoutUser);
-router.get("/me", verifyJWT, getCurrentUser);
-router.delete("/me", verifyJWT, validateRequest(incomingPassword), deleteUser);
 router.post(
-  "/change-password",
+  "api/v1/reset-forgot-password",
+  validateRequest(resetForgotPasswordObject),
+  resetForgotPassword,
+);
+//protected
+router.post("api/v1/logout", verifyJWT, logoutUser);
+router.get("api/v1/me", verifyJWT, getCurrentUser);
+router.delete(
+  "api/v1/me",
+  verifyJWT,
+  validateRequest(incomingPassword),
+  deleteUser,
+);
+router.post(
+  "api/v1/change-password",
   verifyJWT,
   validateRequest(changePasswordObject),
   changePassword,
