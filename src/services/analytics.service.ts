@@ -3,6 +3,7 @@ import * as analyticsRepo from "../repositories/analytics.repository.js";
 export async function getDataForDashboard(
   urlId: string,
   shortCode: string,
+  userId: string,
   { rangeInDays = 30 } = {},
 ) {
   const today = new Date();
@@ -24,14 +25,14 @@ export async function getDataForDashboard(
     previousPeriodTotal,
   ] = await Promise.all([
     analyticsRepo.getLiveStats(shortCode),
-    analyticsRepo.getClicksOverTime(urlId, rangeInDays),
-    analyticsRepo.getBreakdownBy("country_code", urlId, rangeInDays, 10),
-    analyticsRepo.getBreakdownBy("device_type", urlId, rangeInDays),
-    analyticsRepo.getBreakdownBy("referrer_type", urlId, rangeInDays),
-    analyticsRepo.getBreakdownBy("browser_name", urlId, rangeInDays, 5),
-    analyticsRepo.getRecentClicks(urlId, 20),
-    analyticsRepo.getTotalClicksForRange(urlId, rangeStart, today),
-    analyticsRepo.getTotalClicksForRange(urlId, prevRangeStart, rangeStart),
+    analyticsRepo.getClicksOverTime(urlId, userId, rangeInDays),
+    analyticsRepo.getBreakdownBy(userId, "country_code", urlId, rangeInDays, 10),
+    analyticsRepo.getBreakdownBy(userId, "device_type", urlId, rangeInDays),
+    analyticsRepo.getBreakdownBy(userId, "referrer_type", urlId, rangeInDays),
+    analyticsRepo.getBreakdownBy(userId, "browser_name", urlId, rangeInDays, 5),
+    analyticsRepo.getRecentClicks(urlId, userId, 20),
+    analyticsRepo.getTotalClicksForRange(urlId, rangeStart, today, userId),
+    analyticsRepo.getTotalClicksForRange(urlId, prevRangeStart, rangeStart, userId),
   ]);
 
   const percentChange =
