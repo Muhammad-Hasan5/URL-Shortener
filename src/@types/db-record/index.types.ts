@@ -5,7 +5,7 @@ const newRecordSchema = z.object({
   shortCode: z.string(),
   longURL: z.string(),
   click_count: z.number().int().default(0),
-  user_id: z.string().nullable().optional(),
+  user_id: z.uuid(),
   created_at: z.coerce.date().optional(),
   expires_at: z.coerce.date().nullable().optional(),
   last_accessed_at: z.coerce.date().nullable().optional(),
