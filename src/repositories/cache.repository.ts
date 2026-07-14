@@ -19,10 +19,10 @@ export async function set(cacheRecord: CacheRecord): Promise<void> {
 }
 
 // getting from cache
-export async function get(shortCode: string): Promise<CacheRecord | null> {
-  const res = await safeRedis(
-    async () => await redis.get(SETGET_PREFIX + shortCode),
-  );
+export async function get(key: string): Promise<CacheRecord | null> {
+  const res = await safeRedis(async () => {
+    return await redis.get(key);
+  });
   if (!res) return null;
   return JSON.parse(res);
 }
@@ -40,16 +40,41 @@ export async function updateKeyTTL(
   );
 }
 
-export async function setUrlId(id: string, shortCode: string){
-  const res = await safeRedis(async () => {
-    await redis.set(`url:${shortCode}:id`, id, "EX", 600000)
-  })
+export async function setUrlId(id: string, shortCode: string) {
+  await safeRedis(async () => {
+    await redis.set(`url:${shortCode}:id`, id, "EX", 600000);
+  });
 }
 
-export async function getUrlID(shortCode: string): Promise<string | null>{
+export async function getUrlID(key: string): Promise<string | null> {
   const res = await safeRedis(async () => {
-    await redis.get(`url:${shortCode}:id`)
-  })
-  if(!res) return null;
-  return res
+    return await redis.get(key);
+  });
+  if (!res) return null;
+  return res;
+}
+
+export async function setAllUrlsOfUser(
+  userId: string,
+  urls: { urls: any[] },
+) {
+  await safeRedis(async () => {
+    await redis.set(`All:urls:${userId}`, JSON.stringify(urls), "EX", 600);
+  });
+}
+
+export async function getAllUrlsOfUser(key: string) {
+  const res = await safeRedis(async () => {
+    return await redis.get(key);
+  });
+  if (!res) return null;
+  return JSON.parse(res);
+}
+
+export async function deleteAllUrlsOfUser(
+  key: string
+) {
+  await safeRedis(async () => {
+    await redis.del(key);
+  });
 }
