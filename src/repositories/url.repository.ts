@@ -53,7 +53,7 @@ export const checkIfAlreadyExists = async (
 ): Promise<QueryResult<any> | null> => {
   try {
     const db = getPool("read");
-    let queryText = "SELECT * from urls where longURL = $1 and user_id = $2";
+    let queryText = "SELECT * from urls where long_url = $1 and user_id = $2";
 
     const userid = assertUUID(user_id);
 
