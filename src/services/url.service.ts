@@ -28,8 +28,8 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 
 // perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
-  url: (shortCode: string) => `url:${shortCode}`,
-  url_id: (shortCode: string) => `url:${shortCode}:id`,
+  url: (shortCode: string, userId: string) => `url:${shortCode}:${userId}`,
+  url_id: (shortCode: string, userId: string) => `url:id:${shortCode}:${userId}`,
   all_urls: (userId: string) => `All:urls:${userId}`
 };
 
@@ -49,7 +49,7 @@ export async function resolveLongUrl(
   while (attempts < 3) {
     try {
       const result = generateShortCode();
-      const cacheKey = keys.url(result.shortCode);
+      const cacheKey = keys.url(result.shortCode, userId);
 
       // checking if already in cache or not, escaping duplication
       const cacheResult = await get(cacheKey);
@@ -102,7 +102,7 @@ export async function resolveLongUrl(
         });
 
         //response
-        const baseURL = `http://localhost:${env.PORT}`;
+        const baseURL = env.APP_URL;
 
         return {
           status: 201,
@@ -122,7 +122,7 @@ export async function resolveLongUrl(
 
       attempts++;
 
-      const baseURL = `http://localhost${env.PORT}`;
+      const baseURL = env.APP_URL;
 
       return {
         status: 200,
@@ -150,7 +150,7 @@ export async function resolveShortCode(
   shortCode: string,
   userId: string
 ): Promise<ServiceResponse | null> {
-  const cacheKey = keys.url(shortCode);
+  const cacheKey = keys.url(shortCode, userId);
 
   try {
     // check cache to get redirect long url
@@ -222,7 +222,7 @@ export const getUrlId = async (
   requestId: any,
   userId: string,
 ): Promise<ServiceResponse | null> => {
-  const cacheKey = keys.url_id(shortCode);
+  const cacheKey = keys.url_id(shortCode, userId);
   try {
     const cacheResult = await getUrlID(cacheKey);
 
