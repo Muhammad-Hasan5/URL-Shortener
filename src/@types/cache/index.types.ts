@@ -2,6 +2,7 @@ import z from "zod";
 
 const cacheRecordSchema = z.object({
   id: z.string(),
+  user_id: z.uuid(),
   shortCode: z.string(),
   longURL: z.string(),
   clickCount: z.int(),
