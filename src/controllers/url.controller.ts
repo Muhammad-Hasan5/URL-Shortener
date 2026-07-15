@@ -84,6 +84,7 @@ export const redirect = async (req: Request, res: Response) => {
     {
       short_code: shortCode,
       url_id: result.url_id,
+      user_id: userId,
       ip: getClientIp(req),
       user_agent: req.headers["user-agent"],
       referrer: req.headers["referer"],
