@@ -3,6 +3,7 @@ import { Knex } from "knex";
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("url_clicks_daily", (table) => {
     table.bigInteger("url_id").notNullable();
+    table.bigInteger("user_id").references("id").inTable("users").notNullable().onDelete("CASCADE");
     table.date("date").notNullable();
     table.string("country_code", 2);
     table.string("device_type", 20);
@@ -14,6 +15,7 @@ export async function up(knex: Knex): Promise<void> {
 
     table.primary([
       "url_id",
+      "user_id",
       "date",
       "country_code",
       "device_type",
@@ -31,7 +33,7 @@ export async function up(knex: Knex): Promise<void> {
   // Helpful analytics indexes
   await knex.schema.alterTable("url_clicks_daily", (table) => {
     table.index(["date"], "idx_url_clicks_daily_date");
-
+    table.index(["user_id"], "idx_url_clicks_daily_userId");
     table.index(["url_id", "date"], "idx_url_clicks_daily_url_date");
   });
 }
