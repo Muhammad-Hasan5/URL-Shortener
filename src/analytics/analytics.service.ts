@@ -14,6 +14,7 @@ export const insert_into_url_clicks = async (data: any) => {
   await db.query(
     `Insert into url_clicks (
       url_id, 
+      user_id,
       short_code, 
       clicked_at, 
       country_code,
@@ -37,9 +38,10 @@ export const insert_into_url_clicks = async (data: any) => {
       ) 
       values ($1, $2, $3, $4, $5, $6, $7, $8, $9,
       $10, $11, $12, $13, $14, $15, $16, $17, $18, 
-      $19, $20, $21)`,
+      $19, $20, $21, $22)`,
     [
       data.url_id,
+      data.user_id,
       data.short_code,
       data.clicked_at,
       data.country_code,
@@ -93,7 +95,7 @@ export const aggregateRecentClicks = async () => {
   // Read raw clicks from the last 60 seconds
   const clicks = await db.query(
     `
-    SELECT url_id, DATE(clicked_at) as date,
+    SELECT url_id, user_id, DATE(clicked_at) as date,
            country_code, device_type, referrer_type, browser_name,
            COUNT(*) as total,
            COUNT(*) FILTER (WHERE is_unique) as unique_c,
@@ -109,10 +111,10 @@ export const aggregateRecentClicks = async () => {
   for (const row of clicks.rows) {
     await db.query(
       `
-      INSERT INTO url_click_daily (url_id,date,country_code,device_type,
+      INSERT INTO url_clicks_daily (url_id,date,country_code,device_type,
         referrer_type,browser_name,total_clicks,unique_clicks,bot_clicks)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      ON CONFLICT (url_id,date,country_code,device_type,referrer_type,browser_name)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10)
+      ON CONFLICT (url_id,user_id,date,country_code,device_type,referrer_type,browser_name)
       DO UPDATE SET
         total_clicks  = url_click_daily.total_clicks  + EXCLUDED.total_clicks,
         unique_clicks = url_click_daily.unique_clicks + EXCLUDED.unique_clicks,
@@ -120,6 +122,7 @@ export const aggregateRecentClicks = async () => {
     `,
       [
         row.url_id,
+        row.user_id,
         row.date,
         row.country_code,
         row.device_type,
