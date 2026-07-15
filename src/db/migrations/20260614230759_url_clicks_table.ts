@@ -12,6 +12,13 @@ export async function up(knex: Knex): Promise<void> {
       .inTable("urls")
       .onDelete("CASCADE");
 
+      table
+        .bigInteger("user_id")
+        .notNullable()
+        .references("id")
+        .inTable("users")
+        .onDelete("CASCADE");
+
     table.string("short_code", 12).notNullable();
 
     table
@@ -50,11 +57,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string("ip_hash", 64);
 
     table.boolean("is_unique");
-  });
 
-  // Indexes
-  await knex.schema.alterTable("url_clicks", (table) => {
     table.index(["url_id", "clicked_at"], "idx_clicks_url_time");
+    table.index(["user_id"], "idx_clicks_url_userId")
   });
 
   // Partial index
