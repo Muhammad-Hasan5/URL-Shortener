@@ -1,4 +1,4 @@
-import UAParser from "ua-parser-js";
+import {UAParser} from "ua-parser-js";
 import { isbot } from "isbot";
 
 export function parseDevice(userAgent: any) {
@@ -7,7 +7,7 @@ export function parseDevice(userAgent: any) {
   const bot = isbot(userAgent);
   if (bot) return { isBot: true, botName: bot };
 
-  const res = UAParser.UAParser(userAgent);
+  const res = UAParser(userAgent);
 
   return {
     isBot: false,
