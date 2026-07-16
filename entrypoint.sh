@@ -7,8 +7,6 @@ until pg_isready -d "$PG_PRIMARY_STRING"; do
   sleep 2
 done
 
-echo "PostgreSQL ready. Running migrations..."
-npm run migrate:latest
-
+echo "PostgreSQL ready."
 echo "Starting server..."
 exec node dist/index.js
