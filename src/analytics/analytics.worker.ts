@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import redis from "../config/redis/index.redis.js";
+import { bullConnection } from "../config/redis/index.redis.js";
 import { parseReferrer } from "./parsers/referrer.parsers.js";
 import { getLocation } from "./parsers/geo.parsers.js";
 import { parseDevice } from "./parsers/device.parsers.js";
@@ -51,7 +51,7 @@ export const analyticsWorker = new Worker(
     ]);
   },
   {
-    connection: redis,
+    connection: bullConnection,
     concurrency: 20,
   },
 );
