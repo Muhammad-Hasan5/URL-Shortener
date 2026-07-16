@@ -1,5 +1,5 @@
 import { Redis } from "ioredis";
-import logger from "../pino-logging/index.pino.js";
+import logger from "../../observability/pino-logging/index.pino.js";
 import env from "../env.js";
 
 // creating redis client

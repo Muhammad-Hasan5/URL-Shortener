@@ -1,5 +1,5 @@
 import * as argon2 from "argon2";
-import logger from "../../config/pino-logging/index.pino.js";
+import logger from "../../observability/pino-logging/index.pino.js";
 
 export const hashPassword = async (password: string): Promise<string> => {
   try {

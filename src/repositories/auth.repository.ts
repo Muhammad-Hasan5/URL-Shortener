@@ -1,5 +1,5 @@
 import { getPool } from "../db/pools.db.js";
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../observability/pino-logging/index.pino.js";
 
 export const checkIfUserExists = async (email: string) => {
   try {

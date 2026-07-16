@@ -1,7 +1,7 @@
 import { aggregationQueue } from "./queue.aggregation.js";
 import { aggregateRecentClicks } from "../analytics.service.js";
 import { Worker } from "bullmq";
-import logger from "../../config/pino-logging/index.pino.js";
+import logger from "../../observability/pino-logging/index.pino.js";
 import redis from "../../config/redis/index.redis.js";
 
 await aggregationQueue.upsertJobScheduler(

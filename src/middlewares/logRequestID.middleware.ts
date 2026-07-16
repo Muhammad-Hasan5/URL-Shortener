@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import logger from "../config/pino-logging/index.pino.js";
-
+import logger from "../observability/pino-logging/index.pino.js";
 
 export function logRequestID(
   req: Request,

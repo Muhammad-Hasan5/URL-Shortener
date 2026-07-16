@@ -5,7 +5,7 @@ import {
   findByShortCodeAndUserId,
   getUrlIdFromDb,
   fetchAllByUserId,
-  deleteByShortcodeAndUserid
+  deleteByShortcodeAndUserid,
 } from "../repositories/url.repository.js";
 import {
   set,
@@ -14,9 +14,9 @@ import {
   getUrlID,
   getAllUrlsOfUser,
   setAllUrlsOfUser,
-  deleteAllUrlsOfUser
+  deleteAllUrlsOfUser,
 } from "../repositories/cache.repository.js";
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../observability/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
 import {
@@ -29,8 +29,9 @@ import type { CacheRecord } from "../@types/cache/index.types.js";
 // perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
   url: (shortCode: string, userId: string) => `url:${shortCode}:${userId}`,
-  url_id: (shortCode: string, userId: string) => `url:id:${shortCode}:${userId}`,
-  all_urls: (userId: string) => `All:urls:${userId}`
+  url_id: (shortCode: string, userId: string) =>
+    `url:id:${shortCode}:${userId}`,
+  all_urls: (userId: string) => `All:urls:${userId}`,
 };
 
 type ServiceResponse = {
@@ -42,7 +43,7 @@ type ServiceResponse = {
 export async function resolveLongUrl(
   requestId: any,
   longURL: string,
-  userId: string
+  userId: string,
 ): Promise<ServiceResponse | null> {
   let attempts: number = 0;
 
@@ -78,11 +79,11 @@ export async function resolveLongUrl(
           id: result.id.toString(),
           shortCode: result.shortCode,
           longURL,
-          user_id: userId
+          user_id: userId,
         });
 
         //invalidating all stored urls (stale record)
-        await deleteAllUrlsOfUser(keys.all_urls(userId))
+        await deleteAllUrlsOfUser(keys.all_urls(userId));
 
         const now = new Date();
 
@@ -148,7 +149,7 @@ export async function resolveLongUrl(
 export async function resolveShortCode(
   requestId: any,
   shortCode: string,
-  userId: string
+  userId: string,
 ): Promise<ServiceResponse | null> {
   const cacheKey = keys.url(shortCode, userId);
 
@@ -288,20 +289,20 @@ export const fetchAllUrls = async (
       if (!res) {
         return {
           status: 404,
-          data: null
+          data: null,
         };
       }
 
-      if(res.rows.length == 0){
+      if (res.rows.length == 0) {
         return {
           status: 200,
-          data: null
-        }
+          data: null,
+        };
       }
 
-      const urls = res.rows
+      const urls = res.rows;
 
-      await setAllUrlsOfUser(userId, {urls}); //cache
+      await setAllUrlsOfUser(userId, { urls }); //cache
 
       return {
         status: 200,
@@ -326,27 +327,24 @@ export const fetchAllUrls = async (
   }
 };
 
-
 export const deleteShortUrl = async (
   userId: string,
-  shortCode: string
+  shortCode: string,
 ): Promise<ServiceResponse | null> => {
   try {
-      const res = await deleteByShortcodeAndUserid(userId, shortCode);
-      if(res == null){
-        return {
-          status: 500,
-          data: "error deleting records form db"
-        }
-      }
+    const res = await deleteByShortcodeAndUserid(userId, shortCode);
+    if (res == null) {
       return {
-        status: 200,
-        data: null
+        status: 500,
+        data: "error deleting records form db",
       };
+    }
+    return {
+      status: 200,
+      data: null,
+    };
   } catch (error: any) {
     logger.error({ err: error }, "deleteUrl.service.failed");
     throw error;
   }
 };
-
-

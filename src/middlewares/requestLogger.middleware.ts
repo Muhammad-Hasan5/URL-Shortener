@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import logger from "../config/pino-logging/index.pino.js";
-import { requestDuration } from "../config/prometheus-metrics/index.prometheus.js";
+import logger from "../observability/pino-logging/index.pino.js";
+import { requestDuration } from "../observability/prometheus-metrics/index.prometheus.js";
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();

@@ -1,4 +1,4 @@
-import { Knex } from "knex";
+import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("url_clicks", (table) => {
@@ -12,12 +12,12 @@ export async function up(knex: Knex): Promise<void> {
       .inTable("urls")
       .onDelete("CASCADE");
 
-      table
-        .bigInteger("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
+    table
+      .bigInteger("user_id")
+      .notNullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("CASCADE");
 
     table.string("short_code", 12).notNullable();
 
@@ -59,7 +59,7 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean("is_unique");
 
     table.index(["url_id", "clicked_at"], "idx_clicks_url_time");
-    table.index(["user_id"], "idx_clicks_url_userId")
+    table.index(["user_id"], "idx_clicks_url_userId");
   });
 
   // Partial index

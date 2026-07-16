@@ -1,9 +1,14 @@
-import { Knex } from "knex";
+import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("url_clicks_daily", (table) => {
     table.bigInteger("url_id").notNullable();
-    table.bigInteger("user_id").references("id").inTable("users").notNullable().onDelete("CASCADE");
+    table
+      .bigInteger("user_id")
+      .references("id")
+      .inTable("users")
+      .notNullable()
+      .onDelete("CASCADE");
     table.date("date").notNullable();
     table.string("country_code", 2);
     table.string("device_type", 20);

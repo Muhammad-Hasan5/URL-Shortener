@@ -1,5 +1,5 @@
 import CircuitBreaker from "opossum";
-import logger from "../pino-logging/index.pino.js";
+import logger from "../../observability/pino-logging/index.pino.js";
 
 const breaker = new CircuitBreaker(async (fn: () => Promise<unknown>) => fn(), {
   timeout: 300,

@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../observability/pino-logging/index.pino.js";
 import redis from "../config/redis/index.redis.js";
 import { checkPoolReady } from "../db/pools.db.js";
-import register from "../config/prometheus-metrics/index.prometheus.js";
+import register from "../observability/prometheus-metrics/index.prometheus.js";
 
 export async function serverHealthCheck(req: Request, res: Response) {
   return res.status(200).json({

@@ -1,6 +1,5 @@
 import { Pool } from "pg";
-
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../observability/pino-logging/index.pino.js";
 import env from "../config/env.js";
 
 export const primaryPool = new Pool({

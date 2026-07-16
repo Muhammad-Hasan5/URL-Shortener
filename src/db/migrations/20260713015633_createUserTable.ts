@@ -27,7 +27,7 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp("password_reset_expires_at");
 
     table.string("email_verification_token");
-    
+
     table.timestamp("email_verification_expires_at");
 
     table.text("refresh_token");

@@ -1,4 +1,4 @@
-import logger from "../config/pino-logging/index.pino.js";
+import logger from "../observability/pino-logging/index.pino.js";
 import { getPool } from "../db/pools.db.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
 import redis from "../config/redis/index.redis.js";
