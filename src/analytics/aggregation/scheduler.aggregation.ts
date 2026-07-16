@@ -2,7 +2,7 @@ import { aggregationQueue } from "./queue.aggregation.js";
 import { aggregateRecentClicks } from "../analytics.service.js";
 import { Worker } from "bullmq";
 import logger from "../../observability/pino-logging/index.pino.js";
-import redis from "../../config/redis/index.redis.js";
+import { bullConnection } from "../../config/redis/index.redis.js";
 
 await aggregationQueue.upsertJobScheduler(
   "aggregation",
@@ -29,5 +29,5 @@ export const aggregationWorker = new Worker(
     await aggregateRecentClicks();
     logger.info(`Completed job ${job.id} with msg: ${job.data.jobData}`);
   },
-  { connection: redis },
+  { connection: bullConnection },
 );
