@@ -102,7 +102,7 @@ export const aggregateRecentClicks = async () => {
            COUNT(*) FILTER (WHERE is_bot)   as bots
     FROM   url_clicks
     WHERE  clicked_at >= $1
-    GROUP  BY url_id, date, country_code, device_type, referrer_type, browser_name
+    GROUP  BY url_id, user_id,  date, country_code, device_type, referrer_type, browser_name
   `,
     [oneMinAgo],
   );
