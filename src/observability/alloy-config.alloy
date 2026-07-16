@@ -1,12 +1,30 @@
-local.file_match "docker_logs" {
-  path_targets = [{
-    __path__ = "/var/lib/docker/containers/*/*log",
-    job      = "containerlogs",
-  }]
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "__path__"
+    replacement   = "/var/lib/docker/containers/$1/$1-json.log"  // ← fixed
+  }
 }
 
 loki.source.file "docker" {
-  targets    = local.file_match.docker_logs.targets
+  targets    = discovery.relabel.docker_logs.output
   forward_to = [loki.process.parse_pino.receiver]
 }
 
@@ -15,7 +33,7 @@ loki.process "parse_pino" {
 
   stage.json {
     expressions = {
-      output = "log",    
+      output = "log",
       stream = "stream",
     }
   }
@@ -31,13 +49,14 @@ loki.process "parse_pino" {
 
   stage.labels {
     values = {
-      level  = "",
-      stream = "",
+      level     = "",
+      stream    = "",
+      container = "",
     }
   }
 
   stage.output {
-    source = "output"   
+    source = "output"
   }
 }
 
