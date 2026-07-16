@@ -2,7 +2,7 @@ import { Reader } from "@maxmind/geoip2-node";
 import env from "../../config/env.js";
 import { readFileSync } from "fs";
 
-let cityBuffer = readFileSync(env.GEO_CITY_DB_PATH);
+let cityBuffer = readFileSync("src/analytics/data/GeoLite2-City.mmdb");
 let cityData = Reader.openBuffer(cityBuffer);
 
 export function getLocation(ip: string) {
