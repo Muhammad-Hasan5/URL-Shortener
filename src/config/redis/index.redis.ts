@@ -12,6 +12,10 @@ const redis = new Redis(env.REDIS_URL, {
   },
 }); 
 
+export const bullConnection = new Redis(process.env.REDIS_URL!, {
+  maxRetriesPerRequest: null,
+});
+
 logger.info("redis client created successfully");
 
 redis.on("error", (err) => logger.warn({ err }, "redis.error"));
