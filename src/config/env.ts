@@ -19,7 +19,6 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default("info"),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   RATE_LIMIT_WINDOWSMS: z.coerce.number().default(60000),
-  GEO_CITY_DB_PATH: z.string(),
   IP_HASH_SALT: z.string(),
   NODE_ENV: z
     .enum(["development", "testing", "production"])
@@ -29,12 +28,12 @@ const envSchema = z.object({
   ACCESS_TOKEN_EXPIRY: z.string(),
   REFRESH_TOKEN_EXPIRY: z.string(),
   SMTP_HOST: z.string(),
-  SMTP_PORT: z.string(),
+  SMTP_PORT: z.coerce.number(),
   SMTP_SECURE: z.string(),
   SMTP_USER: z.string(),
   SMTP_PASS: z.string(),
   MAIL_FROM: z.string(),
-  APP_URL: z.string(),
+  APP_URL: z.url(),
 });
 
 type Env = z.infer<typeof envSchema>;
