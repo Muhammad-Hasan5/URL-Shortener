@@ -13,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
       .onDelete("CASCADE");
 
     table
-      .bigInteger("user_id")
+      .uuid("user_id")
       .notNullable()
       .references("id")
       .inTable("users")

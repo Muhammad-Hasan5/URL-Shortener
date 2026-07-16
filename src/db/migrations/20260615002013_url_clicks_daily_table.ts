@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable("url_clicks_daily", (table) => {
     table.bigInteger("url_id").notNullable();
     table
-      .bigInteger("user_id")
+      .uuid("user_id")
       .references("id")
       .inTable("users")
       .notNullable()
