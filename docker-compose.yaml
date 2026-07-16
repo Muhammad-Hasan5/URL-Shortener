@@ -1,4 +1,29 @@
 services:
+  migrate:
+    env_file:
+      - .env
+    build:
+      context: .
+      target: production
+    container_name: migrate
+    environment:
+      PG_PRIMARY_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@primary:5432/${POSTGRES_DB}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until pg_isready -d "$$PG_PRIMARY_STRING"; do
+          echo "Postgres not ready yet, retrying in 2s..."
+          sleep 2
+        done
+        echo "Running migrations..."
+        npm run migrate:latest
+    depends_on:
+      primary:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: "no"
+
   app1:
     env_file:
       - .env
@@ -15,6 +40,8 @@ services:
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       primary:
         condition: service_healthy
       replica:
@@ -48,7 +75,13 @@ services:
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     depends_on:
-      app1:
+      migrate:
+        condition: service_completed_successfully
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - app-network
@@ -70,7 +103,13 @@ services:
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     depends_on:
-      app1:
+      migrate:
+        condition: service_completed_successfully
+      primary:
+        condition: service_healthy
+      replica:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - app-network
@@ -172,6 +211,8 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-remote-write-receiver"
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
@@ -180,12 +221,14 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PLUGINS_PLUGIN_ADMIN_ENABLED=false
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - app-network
     depends_on:
       - prometheus
+    restart: unless-stopped
 
   loki:
     image: grafana/loki:latest
