@@ -19,6 +19,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     networks:
       - app-network
     restart: unless-stopped
@@ -37,11 +43,7 @@ services:
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_healthy
-      redis:
+      app1:
         condition: service_healthy
     networks:
       - app-network
@@ -61,11 +63,7 @@ services:
       PG_REPLICA_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@replica:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     depends_on:
-      primary:
-        condition: service_healthy
-      replica:
-        condition: service_healthy
-      redis:
+      app1:
         condition: service_healthy
     networks:
       - app-network
