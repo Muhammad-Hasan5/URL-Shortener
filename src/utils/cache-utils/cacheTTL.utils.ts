@@ -40,13 +40,13 @@ function shouldRefresh(
 }
 
 export async function refreshTtl(cacheResult: CacheRecord) {
-  const remainingTtl = await getKeyTTL(cacheResult.shortCode);
+  const remainingTtl = await getKeyTTL(cacheResult.shortCode, cacheResult.user_id);
 
   if (shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
     const freshTtl = getTTL(
       cacheResult.clickCount,
       new Date(cacheResult.createdAt),
     );
-    await updateKeyTTL(cacheResult.shortCode, freshTtl);
+    await updateKeyTTL(cacheResult.shortCode, cacheResult.user_id, freshTtl);
   }
 }
