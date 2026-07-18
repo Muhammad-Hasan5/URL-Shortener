@@ -117,7 +117,7 @@ export const getUrlsList = async (req: Request, res: Response) => {
   return res.status(200).json({
     status: 200,
     data: result?.data,
-    msg: "user have no short urls generated",
+    msg: "user's urls fetched successfully",
   });
 };
 
