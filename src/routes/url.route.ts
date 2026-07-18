@@ -13,16 +13,18 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 router
-  .route("api/v1/shorten")
+  .route("/shorten")
   .post(limiter, verifyJWT, logRequestID, requestLogger, shortURL);
+
+//public route => for url redirect
 router
-  .route("api/v1/r/:shortCode")
-  .get(limiter, verifyJWT, logRequestID, requestLogger, redirect);
+  .route("/r/:shortCode")
+  .get(limiter, logRequestID, requestLogger, redirect);
 router
-  .route("api/v1/urls-list/:shortCode")
+  .route("/urls-list")
   .post(limiter, verifyJWT, logRequestID, requestLogger, getUrlsList);
 router
-  .route("api/v1/del-url/:shortCode")
+  .route("/del-url/:shortCode")
   .post(limiter, verifyJWT, logRequestID, requestLogger, deleteUrl);
 
 export default router;

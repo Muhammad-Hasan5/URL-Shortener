@@ -1,10 +1,12 @@
 import z from "zod";
 
 export const registerUserObject = z.object({
-  firstName: z.string(),
-  lastName: z.string(),
-  email: z.email(),
-  password: z.string().min(8, "password must contain atleast 8 characters."),
+  body: z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+    email: z.string(),
+    password: z.string(),
+  })
 });
 
 export const loginSchemaObject = z.object({

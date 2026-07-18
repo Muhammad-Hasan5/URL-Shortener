@@ -8,7 +8,7 @@ import limiter from "../middlewares/rateLimit.middleware.js";
 const router = Router();
 
 router
-  .route("api/v1/analytics/:shortCode")
+  .route("/analytics/:shortCode")
   .get(limiter, verifyJWT, logRequestID, requestLogger, getDashBoardData);
 
 export default router;
