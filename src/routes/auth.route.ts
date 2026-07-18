@@ -21,6 +21,7 @@ import {
   incomingEmail,
   changePasswordObject,
   resetForgotPasswordObject,
+  verifyEmailQuery,
 } from "../@types/auth/index.types.js";
 
 const router = Router();
@@ -35,7 +36,7 @@ router.post("/login", validateRequest(loginSchemaObject), loginUser);
 router.post("/refresh-token", refreshAccessToken);
 router.get(
   "/verify-email",
-  validateRequest(incomingPassword),
+  validateRequest(verifyEmailQuery),
   verifyEmail,
 );
 router.post("/resend-email-verification", resendEmailVerification);
