@@ -7,8 +7,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.resolve(__dirname, "../../.env");
 
+// Lightweight .env loader (no extra dependency)
 if (fs.existsSync(envPath)) {
-  process.loadEnvFile(envPath);
+  try {
+    const content = fs.readFileSync(envPath, "utf8");
+    content.split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) return;
+      const eqIndex = trimmed.indexOf("=");
+      if (eqIndex === -1) return;
+      const key = trimmed.slice(0, eqIndex).trim();
+      let val = trimmed.slice(eqIndex + 1).trim();
+      // remove surrounding quotes if present
+      if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
+        val = val.slice(1, -1);
+      }
+      if (key && process.env[key] === undefined) {
+        process.env[key] = val;
+      }
+    });
+  } catch (e) {
+    // If .env parsing fails, continue and let zod surface missing env errors later
+    // Do not throw here to avoid crashing the app at import time.
+    // eslint-disable-next-line no-console
+    console.warn("Failed to load .env file:", (e as Error).message);
+  }
 }
 
 const envSchema = z.object({
