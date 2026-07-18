@@ -92,7 +92,7 @@ export async function resolveLongUrl(
         //save new record to cache
         await set({
           id: result.id.toString(),
-          shortCode: cacheKey,
+          shortCode: result.shortCode,
           user_id: userId,
           longURL,
           clickCount: 0,
@@ -182,7 +182,7 @@ export async function resolveShortCode(
       //save to cache
       await set({
         id: id.toString(),
-        shortCode: `url:${String(shortCode)}`,
+        shortCode: String(shortCode),
         user_id: userId,
         longURL: long_url,
         clickCount: click_count,
@@ -243,7 +243,7 @@ export const getUrlId = async (
 
       const { id } = res.rows[0];
 
-      await setUrlId(id, shortCode); //cache
+      await setUrlId(id, shortCode, userId); //cache
 
       return {
         status: 200,
