@@ -32,24 +32,10 @@ export const registerUser = async (req: Request, res: Response) => {
 
   const response = await registerUserService(userData);
 
-  if (response.status === 499) {
-    return res.status(499).json({
-      status: 499,
-      data: response.data,
-      msg: response.error,
-    });
-  } else if (response.status === 400) {
-    return res.status(400).json({
-      status: 400,
-      data: response.data,
-      msg: response.error,
-    });
-  }
-
-  return res.status(201).json({
-    status: 201,
+  return res.status(response.status).json({
+    status: response.status,
     data: response.data,
-    msg: response.error,
+    msg: response.msg,
   });
 };
 
@@ -58,31 +44,13 @@ export const loginUser = async (req: Request, res: Response) => {
 
   const response = await loginUserService(email, password, req);
 
-  if (response.status === 404) {
-    return res.status(404).json({
-      status: 404,
-      data: null,
-      msg: response.error,
+  if (response.status !== 200) {
+    return res.status(response.status).json({
+      status: response.status,
+      data: response.data,
+      msg: response.msg,
     });
-  } else if (response.status === 403) {
-    return res.status(403).json({
-      status: 403,
-      data: null,
-      msg: response.error,
-    });
-  } else if (response.status === 401) {
-    return res.status(401).json({
-      status: 401,
-      data: null,
-      msg: response.error,
-    });
-  } else if (response.status === 400) {
-    return res.status(400).json({
-      status: 400,
-      data: null,
-      msg: response.error,
-    });
-  }
+  } 
 
   return res
     .status(200)
@@ -98,10 +66,10 @@ export const loginUser = async (req: Request, res: Response) => {
 export const logoutUser = async (req: Request, res: Response) => {
   const response = await logoutUserService(req.user?.id);
 
-  if (response.status == 404) {
-    return res.status(404).json({
-      status: 404,
-      msg: response.error,
+  if (response.status !== 200) {
+    return res.status(response.status).json({
+      status: response.status,
+      msg: response.msg,
     });
   }
 
@@ -122,8 +90,8 @@ export const getCurrentUser = async (req: Request, res: Response) => {
   if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
-      data: null,
-      msg: response.error,
+      data: response.data,
+      msg: response.msg,
     });
   }
 
@@ -142,8 +110,8 @@ export const deleteUser = async (req: Request, res: Response) => {
   if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
-      data: null,
-      msg: response.error,
+      data: response.data,
+      msg: response.msg,
     });
   }
 
@@ -166,8 +134,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
   if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
-      data: null,
-      msg: response.error,
+      data: response.data,
+      msg: response.msg,
     });
   }
 
@@ -186,8 +154,8 @@ export const resendEmailVerification = async (req: Request, res: Response) => {
   if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
-      data: null,
-      msg: response.error,
+      data: response.data,
+      msg: response.msg,
     });
   }
 
@@ -207,7 +175,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
     return res.status(response.status).json({
       status: response.status,
       data: null,
-      msg: response.error,
+      msg: response.msg,
     });
   }
 
@@ -227,7 +195,7 @@ export const resetForgotPassword = async (req: Request, res: Response) => {
     return res.status(response.status).json({
       status: response.status,
       data: null,
-      msg: response.error,
+      msg: response.msg,
     });
   }
 
@@ -250,8 +218,8 @@ export const changePassword = async (req: Request, res: Response) => {
   if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
-      data: null,
-      msg: response.error,
+      data: response.data,
+      msg: response.msg,
     });
   }
 
@@ -276,7 +244,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       .json({
         status: response.status,
         data: null,
-        msg: response.error,
+        msg: response.msg,
       });
   }
 
