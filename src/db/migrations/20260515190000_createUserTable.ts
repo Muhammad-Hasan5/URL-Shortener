@@ -35,7 +35,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text("avatar_url");
 
     table.timestamp("last_login_at");
-    table.string("last_login_ip", 45);
+    table.string("last_login_ip");
     table.integer("failed_login_attempts").defaultTo(0);
     table.timestamp("locked_until");
 
