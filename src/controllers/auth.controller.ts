@@ -22,6 +22,14 @@ const cookieOptions = {
 export const registerUser = async (req: Request, res: Response) => {
   const userData = req.body;
 
+  if(userData === undefined || !userData){
+    return res.status(500).json({
+      status: 500,
+      data: null,
+      msg: "there is undefined received data"
+    })
+  }
+
   const response = await registerUserService(userData);
 
   if (response.status === 499) {
