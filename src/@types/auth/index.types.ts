@@ -31,4 +31,4 @@ export type sanitizedUser = {
   updated_at: Date;
 };
 
-export type registerUserType = z.infer<typeof registerUserObject>;
+export type registerUserType = z.infer<typeof registerUserObject>["body"];
