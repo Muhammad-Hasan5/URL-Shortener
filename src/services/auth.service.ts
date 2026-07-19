@@ -65,7 +65,7 @@ export const registerUserService = async (
 
   if (exists) {
     return {
-      status: 409,
+      status: 404,
       msg: "user with this email already exists",
       data: null,
     };
