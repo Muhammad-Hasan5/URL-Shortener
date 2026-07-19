@@ -67,7 +67,7 @@ function resetPasswordTemplate(url: string) {
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
-  const url = `http://localhost:80/verify-email?token=${token}`;
+  const url = `${env.APP_URL}/verify-email?token=${token}`;
 
   const template = verifyEmailTemplate(url);
 
@@ -80,12 +80,12 @@ export async function sendVerificationEmail(email: string, token: string) {
     });
   } catch (error: any) {
     logger.error("failed to send verification email", error);
-    throw new Error(error)
+    throw error;
   }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const url = `http://localhost:80/reset-password?token=${token}`;
+  const url = `${env.APP_URL}/reset-password?token=${token}`;
 
   const template = resetPasswordTemplate(url);
 
@@ -98,6 +98,6 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     });
   } catch (error: any) {
     logger.error("failed to send password reset email", error);
-    throw new Error(error);
+    throw error;
   }
 }
