@@ -9,7 +9,6 @@ export const registerUserObject = z.object({
   })
 });
 
-// login expects credentials in body
 export const loginSchemaObject = z.object({
   body: z.object({
     email: z.string(),
@@ -17,33 +16,7 @@ export const loginSchemaObject = z.object({
   })
 });
 
-// incomingPassword used where a body with { password } is expected
-export const incomingPassword = z.object({
-  body: z.object({ password: z.string() })
-});
 
-// incomingEmail expects email in the body
-export const incomingEmail = z.object({
-  body: z.object({ email: z.string()})
-});
-
-// change password expects old/new in body
-export const changePasswordObject = z.object({
-  body: z.object({
-    oldPassword: z.string(),
-    newPassword: z.string(),
-  })
-});
-
-// reset forgot password expects token and newPassword in body
-export const resetForgotPasswordObject = z.object({
-  body: z.object({ token: z.string(), newPassword: z.string() })
-});
-
-// verify email uses token as query param
-export const verifyEmailQuery = z.object({
-  query: z.object({ token: z.string() })
-});
 
 export type sanitizedUser = {
   id: string;
