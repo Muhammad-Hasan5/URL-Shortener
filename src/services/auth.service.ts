@@ -10,9 +10,12 @@ import {
   markEmailAsVerified,
   setPasswordResetToken,
   softDeleteUser,
-  updateUser,
   updateUserPassword,
   updateVerificationTokens,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  clearRefreshToken,
+  rotateRefreshToken,
 } from "../repositories/auth.repository.js";
 import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
 import {
@@ -30,6 +33,7 @@ import {
   verifyRefreshToken,
 } from "../utils/auth-utils/tokens.utils.js";
 import { haship } from "../utils/analytics-utils/haship.js";
+import logger from "../observability/pino-logging/index.pino.js";
 import crypto from "crypto";
 
 type authServiceResponse = {
@@ -39,13 +43,17 @@ type authServiceResponse = {
 };
 
 const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const LOCKOUT_DURATION_SECONDS = 15 * 60;
+
+const DUMMY_PASSWORD_HASH =
+  process.env.DUMMY_PASSWORD_HASH ||
+  "$2b$10$CwTycUXWue0Thq9StjUM0uJ8g/vFuk1XdMk1u5D9y3z1CTHi3Ky1a";
 
 const sanitizeUser = (user: any) => {
   if (!user) return null;
   const {
     password_hash,
-    refresh_token,
+    refresh_token_hash,
     email_verification_token,
     email_verification_expires_at,
     password_reset_token,
@@ -65,7 +73,7 @@ export const registerUserService = async (
 
   if (exists) {
     return {
-      status: 404,
+      status: 409,
       msg: "user with this email already exists",
       data: null,
     };
@@ -76,30 +84,36 @@ export const registerUserService = async (
 
   const hashedPass = await hashPassword(user.password);
 
-  const newUser = await insertNewUser({
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    password: hashedPass,
-    emailVerificationToken: hashedToken,
-    emailVerificationTokenExpiry: tokenExpiry,
-  });
-
-  const isUserCreated = await fetchUserByEmail(newUser.email);
-
-  if (!isUserCreated) {
-    return {
-      status: 500,
-      msg: "unable to find new user, not created, internal server error",
-      data: null,
-    };
+  let newUser;
+  try {
+    newUser = await insertNewUser({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      password: hashedPass,
+      emailVerificationToken: hashedToken,
+      emailVerificationTokenExpiry: tokenExpiry,
+    });
+  } catch (error: any) {
+    if (error.code === "USER_EXISTS") {
+      return {
+        status: 409,
+        msg: "user with this email already exists",
+        data: null,
+      };
+    }
+    throw error;
   }
 
-  await sendVerificationEmail(isUserCreated.email, unHashedToken);
+  try {
+    await sendVerificationEmail(newUser.email, unHashedToken);
+  } catch (error: any) {
+    logger.error("failed to send verification email on registration", error);
+  }
 
   return {
     status: 201,
-    data: { user: sanitizeUser(isUserCreated) },
+    data: { user: sanitizeUser(newUser) },
   };
 };
 
@@ -109,10 +123,14 @@ export const loginUserService = async (
   req: Request,
 ): Promise<authServiceResponse> => {
   const user = await fetchUserByEmail(email);
+
   if (!user) {
+    //  a dummy hash comparison so response timing is the same whether
+    // the email exists or not, to reduce email-enumeration risk.
+    await verifyPassword(DUMMY_PASSWORD_HASH, password).catch(() => {});
     return {
       status: 404,
-      msg: "user with this email not exist",
+      msg: "invalid credentials",
       data: null,
     };
   }
@@ -144,13 +162,13 @@ export const loginUserService = async (
   const valid = await verifyPassword(user.password_hash, password);
 
   if (!valid) {
-    user.failed_login_attempts = (user.failed_login_attempts || 0) + 1;
-
-    if (user.failed_login_attempts >= MAX_FAILED_ATTEMPTS) {
-      user.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MS);
-    }
-
-    await updateUser(user);
+    // atomic SQL increment instead of read-modify-write, so concurrent
+    // failed attempts from different instances can't clobber each other.
+    await recordFailedLogin(
+      user.id,
+      MAX_FAILED_ATTEMPTS,
+      LOCKOUT_DURATION_SECONDS,
+    );
 
     return {
       status: 401,
@@ -159,22 +177,17 @@ export const loginUserService = async (
     };
   }
 
-  user.failed_login_attempts = 0;
-  user.locked_until = null;
-
-  user.last_login_at = new Date();
-
   const accessToken = generateAccessToken(user.id, user.email);
   const refreshToken = generateRefreshToken(user.email);
-
-  user.refresh_token = refreshToken;
 
   const ip = getClientIp(req);
   const hashedIP = ip ? haship(ip, new Date()) : null;
 
-  user.last_login_ip = hashedIP;
-
-  const loggedInUser = await updateUser(user);
+  const loggedInUser = await recordSuccessfulLogin(
+    user.id,
+    hashedIP,
+    hashToken(refreshToken),
+  );
 
   return {
     status: 200,
@@ -207,9 +220,7 @@ export const logoutUserService = async (
     };
   }
 
-  user.refresh_token = null;
-
-  await updateUser(user);
+  await clearRefreshToken(id);
 
   return {
     status: 200,
@@ -247,11 +258,14 @@ export const deleteUserService = async (
     return { status: 404, msg: "user not found", data: null };
   }
 
-  if (password) {
-    const valid = await verifyPassword(user.password_hash, password);
-    if (!valid) {
-      return { status: 401, msg: "invalid credentials", data: null };
-    }
+
+  if (!password) {
+    return { status: 400, msg: "password is required", data: null };
+  }
+
+  const valid = await verifyPassword(user.password_hash, password);
+  if (!valid) {
+    return { status: 401, msg: "invalid credentials", data: null };
   }
 
   await softDeleteUser(id);
@@ -303,7 +317,7 @@ export const resendEmailVerificationService = async (
   const user = await fetchUserByEmail(email);
 
   if (!user) {
-    return { status: 404, msg: "user with this email not exist", data: null };
+    return { status: 200, data: null };
   }
 
   if (user.email_verified) {
@@ -325,7 +339,7 @@ export const resetPasswordRequestService = async (
   const user = await fetchUserByEmail(email);
 
   if (!user) {
-    return { status: 404, msg: "user with this email not exist", data: null };
+    return { status: 200, data: null };
   }
 
   const { unHashedToken, hashedToken, tokenExpiry } =
@@ -420,15 +434,18 @@ export const refreshAccessTokenService = async (
     return { status: 401, msg: "invalid refresh token", data: null };
   }
 
-  if (user.refresh_token !== incomingRefreshToken) {
-    return { status: 401, msg: "refresh token has been revoked", data: null };
-  }
-
+  const oldHash = hashToken(incomingRefreshToken);
   const accessToken = generateAccessToken(user.id, user.email);
   const refreshToken = generateRefreshToken(user.email);
+  const newHash = hashToken(refreshToken);
 
-  user.refresh_token = refreshToken;
-  await updateUser(user);
+
+  const rotated = await rotateRefreshToken(user.id, oldHash, newHash);
+
+  if (!rotated) {
+    await clearRefreshToken(user.id);
+    return { status: 401, msg: "refresh token has been revoked", data: null };
+  }
 
   return { status: 200, data: { accessToken, refreshToken } };
 };
