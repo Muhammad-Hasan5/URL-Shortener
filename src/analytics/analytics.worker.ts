@@ -12,11 +12,18 @@ import {
 export const analyticsWorker = new Worker(
   "click",
   async (job) => {
-    const { short_code, url_id, userId, ip, userAgent, referrer, clicked_at } =
-      job.data;
+    const {
+      short_code,
+      url_id,
+      user_id,
+      ip,
+      user_agent,
+      referrer,
+      clicked_at,
+    } = job.data;
 
     const [device, location, source] = await Promise.all([
-      parseDevice(userAgent),
+      parseDevice(user_agent),
       getLocation(ip),
       parseReferrer(referrer),
     ]);
@@ -27,7 +34,7 @@ export const analyticsWorker = new Worker(
       insert_into_url_clicks({
         ip,
         url_id,
-        userId,
+        user_id,
         short_code,
         clicked_at,
         country_code: location.countryCode,
