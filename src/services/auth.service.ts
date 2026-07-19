@@ -85,12 +85,12 @@ export const registerUserService = async (
     emailVerificationTokenExpiry: tokenExpiry,
   });
 
-  const isUserCreated = await fetchUserById(newUser.id);
+  const isUserCreated = await fetchUserByEmail(newUser.email);
 
   if (!isUserCreated) {
     return {
-      status: 404,
-      msg: "unable to find new user, not created",
+      status: 500,
+      msg: "unable to find new user, not created, internal server error",
       data: null,
     };
   }
