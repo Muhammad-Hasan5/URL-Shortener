@@ -7,9 +7,10 @@ import {
 } from "../services/url.service.js";
 import { analyticsQueue } from "../analytics/analytics.queue.js";
 import { getClientIp } from "../utils/analytics-utils/getClientIP.js";
+import { asyncHandler } from "../utils/asyncHandler.utils.js";
 
 // covnert long url to SHORT one
-export const shortURL = async (req: Request, res: Response) => {
+export const shortURL = asyncHandler(async (req: Request, res: Response) => {
   //fetch
   const { longURL } = req.body;
   const userId = req.user?.id;
@@ -49,10 +50,10 @@ export const shortURL = async (req: Request, res: Response) => {
     data: { url_id: result.url_id, url: result.data },
     msg: "url has been shorten successfully",
   });
-};
+});
 
 // REDIRECT to long url
-export const redirect = async (req: Request, res: Response) => {
+export const redirect = asyncHandler(async (req: Request, res: Response) => {
   //fetch
   const shortCode = req.params.shortCode;
   const userId = req.user?.id;
@@ -92,10 +93,10 @@ export const redirect = async (req: Request, res: Response) => {
     },
     { removeOnComplete: 500, attempts: 3 },
   );
-};
+});
 
 //fetch all urls of a user
-export const getUrlsList = async (req: Request, res: Response) => {
+export const getUrlsList = asyncHandler(async (req: Request, res: Response) => {
   const reqId = req.id;
   const userId = req.user?.id;
 
@@ -119,9 +120,9 @@ export const getUrlsList = async (req: Request, res: Response) => {
     data: result?.data,
     msg: "user's urls fetched successfully",
   });
-};
+});
 
-export const deleteUrl = async (req: Request, res: Response) => {
+export const deleteUrl = asyncHandler(async (req: Request, res: Response) => {
   const shortCode = req.params.shortCode;
   const userId = req.user?.id;
 
@@ -140,4 +141,4 @@ export const deleteUrl = async (req: Request, res: Response) => {
     data: null,
     msg: "url deleted successfully",
   });
-};
+});
