@@ -12,7 +12,7 @@ export const registerUserObject = z.object({
 // login expects credentials in body
 export const loginSchemaObject = z.object({
   body: z.object({
-    email: z.string().email(),
+    email: z.string(),
     password: z.string(),
   })
 });
@@ -24,7 +24,7 @@ export const incomingPassword = z.object({
 
 // incomingEmail expects email in the body
 export const incomingEmail = z.object({
-  body: z.object({ email: z.string().email() })
+  body: z.object({ email: z.string()})
 });
 
 // change password expects old/new in body
