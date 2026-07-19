@@ -8,8 +8,6 @@ export function validateRequest(schema: AnyZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse({
       body: req.body,
-      query: req.query,
-      params: req.params,
     });
 
     if (!result.success) {
@@ -23,9 +21,6 @@ export function validateRequest(schema: AnyZodSchema) {
     }
 
     req.body = result.data.body;
-    req.query = result.data.query;
-    req.params = result.data.params;
-
     next();
   };
 }
