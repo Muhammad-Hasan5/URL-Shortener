@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import env from "../../config/env.js";
+import logger from "../../observability/pino-logging/index.pino.js";
 
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
@@ -70,12 +71,17 @@ export async function sendVerificationEmail(email: string, token: string) {
 
   const template = verifyEmailTemplate(url);
 
-  await transporter.sendMail({
-    from: env.MAIL_FROM,
-    to: email,
-    subject: template.subject,
-    html: template.html,
-  });
+  try {
+    await transporter.sendMail({
+      from: env.MAIL_FROM,
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    });
+  } catch (error: any) {
+    logger.error("failed to send verification email", error);
+    throw new Error(error)
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
@@ -83,10 +89,15 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   const template = resetPasswordTemplate(url);
 
-  await transporter.sendMail({
-    from: env.MAIL_FROM,
-    to: email,
-    subject: template.subject,
-    html: template.html,
-  });
+  try {
+    await transporter.sendMail({
+      from: env.MAIL_FROM,
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    });
+  } catch (error: any) {
+    logger.error("failed to send password reset email", error);
+    throw new Error(error);
+  }
 }
