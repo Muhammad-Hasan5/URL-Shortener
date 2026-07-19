@@ -61,7 +61,7 @@ export async function getTotalClicksForRange(
   userId = assertUUID(userId)
   const { rows } = await db.query(
     `SELECT COALESCE(SUM(total_clicks), 0) AS total
-     FROM url_click_daily
+     FROM url_clicks_daily
      WHERE url_id = $1 AND user_id = $2 AND date >= $3 AND date < $4`,
     [urlId, userId, startDate, endDate],
   );
