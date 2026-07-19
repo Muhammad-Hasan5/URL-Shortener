@@ -61,7 +61,7 @@ const hashToken = (token: string) =>
 export const registerUserService = async (
   user: registerUserType,
 ): Promise<authServiceResponse> => {
-  const exists = await checkIfUserExists(user.body.email);
+  const exists = await checkIfUserExists(user.email);
 
   if (exists) {
     return {
@@ -74,12 +74,12 @@ export const registerUserService = async (
   const { unHashedToken, hashedToken, tokenExpiry } =
     generateRandomToken("email");
 
-  const hashedPass = await hashPassword(user.body.password);
+  const hashedPass = await hashPassword(user.password);
 
   const newUser = await insertNewUser({
-    firstName: user.body.firstName,
-    lastName: user.body.lastName,
-    email: user.body.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
     password: hashedPass,
     emailVerificationToken: hashedToken,
     emailVerificationTokenExpiry: tokenExpiry,
