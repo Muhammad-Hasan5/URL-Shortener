@@ -66,7 +66,7 @@ function resetPasswordTemplate(url: string) {
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
-  const url = `${env.APP_URL}/verify-email?token=${token}`;
+  const url = `http://localhost:80/verify-email?token=${token}`;
 
   const template = verifyEmailTemplate(url);
 
@@ -79,7 +79,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const url = `${env.APP_URL}/reset-password?token=${token}`;
+  const url = `http://localhost:80/reset-password?token=${token}`;
 
   const template = resetPasswordTemplate(url);
 
