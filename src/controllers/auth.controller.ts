@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import {
   changePasswordService,
   deleteUserService,
@@ -12,6 +12,7 @@ import {
   resetPasswordRequestService,
   verifyEmailService,
 } from "../services/auth.service.js";
+import { asyncHandler } from "../utils/asyncHandler.utils.js";
 
 const cookieOptions = {
   secure: true,
@@ -19,28 +20,40 @@ const cookieOptions = {
   sameSite: "strict" as const,
 };
 
-export const registerUser = async (req: Request, res: Response) => {
-  const userData = req.body;
 
-  if(userData === undefined || !userData){
-    return res.status(500).json({
-      status: 500,
+
+export const registerUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { firstName, lastName, email, password } = req.body ?? {};
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        status: 400,
+        data: null,
+        msg: "firstName, lastName, email and password are required",
+      });
+    }
+
+    const response = await registerUserService(req.body);
+
+    return res.status(response.status).json({
+      status: response.status,
+      data: response.data,
+      msg: response.msg,
+    });
+  },
+);
+
+export const loginUser = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body ?? {};
+
+  if (!email || !password) {
+    return res.status(400).json({
+      status: 400,
       data: null,
-      msg: "there is undefined received data"
-    })
+      msg: "email and password are required",
+    });
   }
-
-  const response = await registerUserService(userData);
-
-  return res.status(response.status).json({
-    status: response.status,
-    data: response.data,
-    msg: response.msg,
-  });
-};
-
-export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
 
   const response = await loginUserService(email, password, req);
 
@@ -50,7 +63,7 @@ export const loginUser = async (req: Request, res: Response) => {
       data: response.data,
       msg: response.msg,
     });
-  } 
+  }
 
   return res
     .status(200)
@@ -61,9 +74,9 @@ export const loginUser = async (req: Request, res: Response) => {
       data: response.data?.loggedInUser,
       msg: "user logged successfully",
     });
-};
+});
 
-export const logoutUser = async (req: Request, res: Response) => {
+export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   const response = await logoutUserService(req.user?.id);
 
   if (response.status !== 200) {
@@ -82,28 +95,30 @@ export const logoutUser = async (req: Request, res: Response) => {
       data: response.data,
       msg: "user logged out",
     });
-};
+});
 
-export const getCurrentUser = async (req: Request, res: Response) => {
-  const response = await getCurrentUserService(req.user?.id);
+export const getCurrentUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const response = await getCurrentUserService(req.user?.id);
 
-  if (response.status !== 200) {
-    return res.status(response.status).json({
-      status: response.status,
+    if (response.status !== 200) {
+      return res.status(response.status).json({
+        status: response.status,
+        data: response.data,
+        msg: response.msg,
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
       data: response.data,
-      msg: response.msg,
+      msg: "current user fetched successfully",
     });
-  }
+  },
+);
 
-  return res.status(200).json({
-    status: 200,
-    data: response.data,
-    msg: "current user fetched successfully",
-  });
-};
-
-export const deleteUser = async (req: Request, res: Response) => {
-  const { password } = req.body;
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const { password } = req.body ?? {};
 
   const response = await deleteUserService(req.user?.id, password);
 
@@ -124,9 +139,9 @@ export const deleteUser = async (req: Request, res: Response) => {
       data: null,
       msg: "account deleted",
     });
-};
+});
 
-export const verifyEmail = async (req: Request, res: Response) => {
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   const { token } = req.query as { token?: string };
 
   const response = await verifyEmailService(token);
@@ -144,117 +159,126 @@ export const verifyEmail = async (req: Request, res: Response) => {
     data: response.data,
     msg: "email verified successfully",
   });
-};
+});
 
-export const resendEmailVerification = async (req: Request, res: Response) => {
-  const { email } = req.body;
+export const resendEmailVerification = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body ?? {};
 
-  const response = await resendEmailVerificationService(email);
+    if (!email) {
+      return res
+        .status(400)
+        .json({ status: 400, data: null, msg: "email is required" });
+    }
 
-  if (response.status !== 200) {
-    return res.status(response.status).json({
-      status: response.status,
-      data: response.data,
-      msg: response.msg,
-    });
-  }
+    const response = await resendEmailVerificationService(email);
 
-  return res.status(200).json({
-    status: 200,
-    data: null,
-    msg: "verification email sent",
-  });
-};
-
-export const resetPasswordRequest = async (req: Request, res: Response) => {
-  const { email } = req.body;
-
-  const response = await resetPasswordRequestService(email);
-
-  if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
       data: null,
-      msg: response.msg,
+      msg:
+        response.status === 200
+          ? "if an account exists, a verification email has been sent"
+          : response.msg,
     });
-  }
+  },
+);
 
-  return res.status(200).json({
-    status: 200,
-    data: null,
-    msg: "password reset email sent",
-  });
-};
+export const resetPasswordRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body ?? {};
 
-export const resetForgotPassword = async (req: Request, res: Response) => {
-  const { token, newPassword } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ status: 400, data: null, msg: "email is required" });
+    }
 
-  const response = await resetForgotPasswordService(token, newPassword);
+    const response = await resetPasswordRequestService(email);
 
-  if (response.status !== 200) {
     return res.status(response.status).json({
       status: response.status,
       data: null,
-      msg: response.msg,
+      msg: "if an account exists, a password reset email has been sent",
     });
-  }
+  },
+);
 
-  return res.status(200).json({
-    status: 200,
-    data: null,
-    msg: "password reset successfully",
-  });
-};
+export const resetForgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body ?? {};
 
-export const changePassword = async (req: Request, res: Response) => {
-  const { oldPassword, newPassword } = req.body;
+    const response = await resetForgotPasswordService(token, newPassword);
 
-  const response = await changePasswordService(
-    req.user?.id,
-    oldPassword,
-    newPassword,
-  );
-
-  if (response.status !== 200) {
-    return res.status(response.status).json({
-      status: response.status,
-      data: response.data,
-      msg: response.msg,
-    });
-  }
-
-  return res.status(200).json({
-    status: 200,
-    data: null,
-    msg: "password changed successfully",
-  });
-};
-
-export const refreshAccessToken = async (req: Request, res: Response) => {
-  const incomingRefreshToken =
-    req.cookies?.refreshToken || req.body?.refreshToken;
-
-  const response = await refreshAccessTokenService(incomingRefreshToken);
-
-  if (response.status !== 200) {
-    return res
-      .status(response.status)
-      .clearCookie("accessToken", cookieOptions)
-      .clearCookie("refreshToken", cookieOptions)
-      .json({
+    if (response.status !== 200) {
+      return res.status(response.status).json({
         status: response.status,
         data: null,
         msg: response.msg,
       });
-  }
+    }
 
-  return res
-    .status(200)
-    .cookie("accessToken", response.data.accessToken, cookieOptions)
-    .cookie("refreshToken", response.data.refreshToken, cookieOptions)
-    .json({
+    return res.status(200).json({
       status: 200,
       data: null,
-      msg: "access token refreshed",
+      msg: "password reset successfully",
     });
-};
+  },
+);
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { oldPassword, newPassword } = req.body ?? {};
+
+    const response = await changePasswordService(
+      req.user?.id,
+      oldPassword,
+      newPassword,
+    );
+
+    if (response.status !== 200) {
+      return res.status(response.status).json({
+        status: response.status,
+        data: response.data,
+        msg: response.msg,
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      data: null,
+      msg: "password changed successfully",
+    });
+  },
+);
+
+export const refreshAccessToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const incomingRefreshToken =
+      req.cookies?.refreshToken || req.body?.refreshToken;
+
+    const response = await refreshAccessTokenService(incomingRefreshToken);
+
+    if (response.status !== 200) {
+      return res
+        .status(response.status)
+        .clearCookie("accessToken", cookieOptions)
+        .clearCookie("refreshToken", cookieOptions)
+        .json({
+          status: response.status,
+          data: null,
+          msg: response.msg,
+        });
+    }
+
+    return res
+      .status(200)
+      .cookie("accessToken", response.data.accessToken, cookieOptions)
+      .cookie("refreshToken", response.data.refreshToken, cookieOptions)
+      .json({
+        status: 200,
+        data: null,
+        msg: "access token refreshed",
+      });
+  },
+);
