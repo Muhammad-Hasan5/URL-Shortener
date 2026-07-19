@@ -27,9 +27,6 @@ if (fs.existsSync(envPath)) {
       }
     });
   } catch (e) {
-    // If .env parsing fails, continue and let zod surface missing env errors later
-    // Do not throw here to avoid crashing the app at import time.
-    // eslint-disable-next-line no-console
     console.warn("Failed to load .env file:", (e as Error).message);
   }
 }
@@ -51,7 +48,7 @@ const envSchema = z.object({
   ACCESS_TOKEN_EXPIRY: z.string(),
   REFRESH_TOKEN_EXPIRY: z.string(),
   SMTP_HOST: z.string(),
-  SMTP_PORT: z.coerce.number(),
+  SMTP_PORT: z.string(),
   SMTP_SECURE: z.string(),
   SMTP_USER: z.string(),
   SMTP_PASS: z.string(),
@@ -62,5 +59,7 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>;
 
 const env: Env = envSchema.parse(process.env);
+
+console.log(env)
 
 export default env;
