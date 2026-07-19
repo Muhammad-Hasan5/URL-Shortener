@@ -30,7 +30,7 @@ export async function up(knex: Knex): Promise<void> {
 
     table.timestamp("email_verification_expires_at");
 
-    table.text("refresh_token");
+    table.text("refresh_token_hash");
 
     table.text("avatar_url");
 
