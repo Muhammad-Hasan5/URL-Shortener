@@ -34,7 +34,7 @@ import crypto from "crypto";
 
 type authServiceResponse = {
   status: number;
-  error?: any;
+  msg?: any;
   data?: any;
 };
 
@@ -66,7 +66,7 @@ export const registerUserService = async (
   if (exists) {
     return {
       status: 409,
-      error: "user with this email already exists",
+      msg: "user with this email already exists",
       data: null,
     };
   }
@@ -90,7 +90,7 @@ export const registerUserService = async (
   if (!isUserCreated) {
     return {
       status: 404,
-      error: "unable to find new user, not created",
+      msg: "unable to find new user, not created",
       data: null,
     };
   }
@@ -112,7 +112,7 @@ export const loginUserService = async (
   if (!user) {
     return {
       status: 404,
-      error: "user with this email not exist",
+      msg: "user with this email not exist",
       data: null,
     };
   }
@@ -120,7 +120,7 @@ export const loginUserService = async (
   if (user.status !== "active") {
     return {
       status: 403,
-      error: "account is not active",
+      msg: "account is not active",
       data: null,
     };
   }
@@ -128,7 +128,7 @@ export const loginUserService = async (
   if (!user.email_verified) {
     return {
       status: 400,
-      error: "email is not verified",
+      msg: "email is not verified",
       data: null,
     };
   }
@@ -136,7 +136,7 @@ export const loginUserService = async (
   if (user.locked_until && new Date(user.locked_until) > new Date()) {
     return {
       status: 403,
-      error: "account is temporarily locked, try again later",
+      msg: "account is temporarily locked, try again later",
       data: null,
     };
   }
@@ -154,7 +154,7 @@ export const loginUserService = async (
 
     return {
       status: 401,
-      error: "invalid credentials",
+      msg: "invalid credentials",
       data: null,
     };
   }
@@ -192,7 +192,7 @@ export const logoutUserService = async (
   if (!id) {
     return {
       status: 404,
-      error: "user with this ID not exists",
+      msg: "user with this ID not exists",
       data: null,
     };
   }
@@ -202,7 +202,7 @@ export const logoutUserService = async (
   if (!user) {
     return {
       status: 404,
-      error: "user with this ID not exists",
+      msg: "user with this ID not exists",
       data: null,
     };
   }
@@ -221,13 +221,13 @@ export const getCurrentUserService = async (
   id?: string,
 ): Promise<authServiceResponse> => {
   if (!id) {
-    return { status: 401, error: "unauthorized", data: null };
+    return { status: 401, msg: "unauthorized", data: null };
   }
 
   const user = await fetchUserById(id);
 
   if (!user) {
-    return { status: 404, error: "user not found", data: null };
+    return { status: 404, msg: "user not found", data: null };
   }
 
   return { status: 200, data: sanitizeUser(user) };
@@ -238,19 +238,19 @@ export const deleteUserService = async (
   password?: string,
 ): Promise<authServiceResponse> => {
   if (!id) {
-    return { status: 401, error: "unauthorized", data: null };
+    return { status: 401, msg: "unauthorized", data: null };
   }
 
   const user = await fetchUserById(id);
 
   if (!user) {
-    return { status: 404, error: "user not found", data: null };
+    return { status: 404, msg: "user not found", data: null };
   }
 
   if (password) {
     const valid = await verifyPassword(user.password_hash, password);
     if (!valid) {
-      return { status: 401, error: "invalid credentials", data: null };
+      return { status: 401, msg: "invalid credentials", data: null };
     }
   }
 
@@ -263,7 +263,7 @@ export const verifyEmailService = async (
   token?: string,
 ): Promise<authServiceResponse> => {
   if (!token) {
-    return { status: 400, error: "verification token is required", data: null };
+    return { status: 400, msg: "verification token is required", data: null };
   }
 
   const hashedToken = hashToken(token);
@@ -272,7 +272,7 @@ export const verifyEmailService = async (
   if (!user) {
     return {
       status: 400,
-      error: "invalid or expired verification token",
+      msg: "invalid or expired verification token",
       data: null,
     };
   }
@@ -287,7 +287,7 @@ export const verifyEmailService = async (
   ) {
     return {
       status: 400,
-      error: "invalid or expired verification token",
+      msg: "invalid or expired verification token",
       data: null,
     };
   }
@@ -303,11 +303,11 @@ export const resendEmailVerificationService = async (
   const user = await fetchUserByEmail(email);
 
   if (!user) {
-    return { status: 404, error: "user with this email not exist", data: null };
+    return { status: 404, msg: "user with this email not exist", data: null };
   }
 
   if (user.email_verified) {
-    return { status: 400, error: "email is already verified", data: null };
+    return { status: 400, msg: "email is already verified", data: null };
   }
 
   const { unHashedToken, hashedToken, tokenExpiry } =
@@ -325,7 +325,7 @@ export const resetPasswordRequestService = async (
   const user = await fetchUserByEmail(email);
 
   if (!user) {
-    return { status: 404, error: "user with this email not exist", data: null };
+    return { status: 404, msg: "user with this email not exist", data: null };
   }
 
   const { unHashedToken, hashedToken, tokenExpiry } =
@@ -344,7 +344,7 @@ export const resetForgotPasswordService = async (
   if (!token || !newPassword) {
     return {
       status: 400,
-      error: "token and new password are required",
+      msg: "token and new password are required",
       data: null,
     };
   }
@@ -353,14 +353,14 @@ export const resetForgotPasswordService = async (
   const user = await fetchUserByPasswordResetToken(hashedToken);
 
   if (!user) {
-    return { status: 400, error: "invalid or expired reset token", data: null };
+    return { status: 400, msg: "invalid or expired reset token", data: null };
   }
 
   if (
     !user.password_reset_expires_at ||
     new Date(user.password_reset_expires_at) < new Date()
   ) {
-    return { status: 400, error: "invalid or expired reset token", data: null };
+    return { status: 400, msg: "invalid or expired reset token", data: null };
   }
 
   const hashedPassword = await hashPassword(newPassword);
@@ -375,19 +375,19 @@ export const changePasswordService = async (
   newPassword: string,
 ): Promise<authServiceResponse> => {
   if (!id) {
-    return { status: 401, error: "unauthorized", data: null };
+    return { status: 401, msg: "unauthorized", data: null };
   }
 
   const user = await fetchUserById(id);
 
   if (!user) {
-    return { status: 404, error: "user not found", data: null };
+    return { status: 404, msg: "user not found", data: null };
   }
 
   const valid = await verifyPassword(user.password_hash, oldPassword);
 
   if (!valid) {
-    return { status: 401, error: "current password is incorrect", data: null };
+    return { status: 401, msg: "current password is incorrect", data: null };
   }
 
   const hashedPassword = await hashPassword(newPassword);
@@ -400,7 +400,7 @@ export const refreshAccessTokenService = async (
   incomingRefreshToken?: string,
 ): Promise<authServiceResponse> => {
   if (!incomingRefreshToken) {
-    return { status: 401, error: "refresh token is required", data: null };
+    return { status: 401, msg: "refresh token is required", data: null };
   }
 
   let decoded: { email: string };
@@ -409,7 +409,7 @@ export const refreshAccessTokenService = async (
   } catch (error) {
     return {
       status: 401,
-      error: "invalid or expired refresh token",
+      msg: "invalid or expired refresh token",
       data: null,
     };
   }
@@ -417,11 +417,11 @@ export const refreshAccessTokenService = async (
   const user = await fetchUserByEmail(decoded.email);
 
   if (!user) {
-    return { status: 401, error: "invalid refresh token", data: null };
+    return { status: 401, msg: "invalid refresh token", data: null };
   }
 
   if (user.refresh_token !== incomingRefreshToken) {
-    return { status: 401, error: "refresh token has been revoked", data: null };
+    return { status: 401, msg: "refresh token has been revoked", data: null };
   }
 
   const accessToken = generateAccessToken(user.id, user.email);
