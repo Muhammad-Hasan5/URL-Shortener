@@ -11,18 +11,25 @@ import { asyncHandler } from "../utils/asyncHandler.utils.js";
 
 // covnert long url to SHORT one
 export const shortURL = asyncHandler(async (req: Request, res: Response) => {
-  //fetch
   const { longURL } = req.body;
   const userId = req.user?.id;
 
-  //validate incoming long url & expiry date
+  if (typeof longURL !== "string" || longURL.trim() === "") {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      msg: "longURL is required and must be a non-empty string",
+    });
+  }
+
+  //validate incoming long url format
   try {
-    new URL(longURL);
+    new URL(longURL.trim());
   } catch {
     return res.status(400).json({
       status: 400,
       success: false,
-      msg: "invalid url",
+      msg: "invalid url format",
     });
   }
 
@@ -133,6 +140,14 @@ export const deleteUrl = asyncHandler(async (req: Request, res: Response) => {
       status: 500,
       data: null,
       msg: result?.data,
+    });
+  }
+
+  if (result?.status == 404) {
+    return res.status(404).json({
+      status: 404,
+      data: null,
+      msg: "url not found",
     });
   }
 
