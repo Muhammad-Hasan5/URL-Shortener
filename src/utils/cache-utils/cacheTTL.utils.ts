@@ -1,7 +1,6 @@
 import type { CacheRecord } from "../../@types/cache/index.types.js";
 import { getKeyTTL, updateKeyTTL } from "../../repositories/cache.repository.js";
 
-//fixed TTL classifications
 const TTL = {
   NEW: 5 * 60,
   COLD: 10 * 60,
@@ -40,13 +39,13 @@ function shouldRefresh(
 }
 
 export async function refreshTtl(cacheResult: CacheRecord) {
-  const remainingTtl = await getKeyTTL(cacheResult.shortCode, cacheResult.user_id);
+  const remainingTtl = await getKeyTTL(cacheResult.shortCode);
 
   if (shouldRefresh(Number(remainingTtl), cacheResult.cachedTtl)) {
     const freshTtl = getTTL(
       cacheResult.clickCount,
       new Date(cacheResult.createdAt),
     );
-    await updateKeyTTL(cacheResult.shortCode, cacheResult.user_id, freshTtl);
+    await updateKeyTTL(cacheResult.shortCode, freshTtl);
   }
 }
