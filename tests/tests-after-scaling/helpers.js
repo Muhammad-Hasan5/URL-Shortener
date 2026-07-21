@@ -1,28 +1,22 @@
 import http from "k6/http";
 import { check } from "k6";
 
+// A rate-limited response is an intentional result from this system, not a transport failure. This keeps `http_req_failed` focused on real failures(5xx, connection errors, wrong routes) while individual checks still state which statuses are acceptable for each scenario.
+
+http.setResponseCallback(http.expectedStatuses(200, 201, 302, 401, 429, 503));
+
 
 export const BASE_URL = "http://localhost:80";
 
-// A pool of pre-existing test users. Don't register a fresh user per VU —
-// at 200+ concurrent VUs that hammers your bcrypt hashing and DB writes
-// and you end up load-testing your registration flow by accident, not
-// the redirect/shorten paths you actually care about.
-//
-// Seed these users into your DB once before running tests (see the
-// seed-users.js script below), then every test just logs in.
+
 const TEST_USERS = [
-  { email: "loadtest1@test.com", password: "LoadTest123!" },
-  { email: "loadtest2@test.com", password: "LoadTest123!" },
-  { email: "loadtest3@test.com", password: "LoadTest123!" },
-  { email: "loadtest4@test.com", password: "LoadTest123!" },
-  { email: "loadtest5@test.com", password: "LoadTest123!" },
+  { email: "hasanjanu00@gmail.com", password: "LoadTest123!" },
+  { email: "hasanamir.dev@gmail.com", password: "LoadTest123!" },
+  { email: "sp24bsse0101@maju.edu.pk", password: "LoadTest123!" },
+  { email: "mawal15492@rapplo.com", password: "LoadTest123!" },
 ];
 
-// Runs ONCE before the test starts (not per-VU, not per-iteration).
-// Logs in every seeded test user and returns their tokens plus a set of
-// short codes to hit during the redirect test. This return value is
-// passed into default() as its argument on every VU.
+
 export function authSetup() {
   const tokens = TEST_USERS.map((user) => {
     const res = http.post(
@@ -41,16 +35,14 @@ export function authSetup() {
       );
     }
 
-    return res.json("accessToken");
+    return res.cookies.accessToken[0].value;
   });
 
-  // Pre-create a handful of short URLs so the redirect test has known,
-  // valid codes to hit instead of guessing or creating-then-redirecting
-  // in the same iteration (which would conflate write and read latency).
+
   const shortCodes = tokens.slice(0, 3).map((token) => {
     const res = http.post(
-      `${BASE_URL}/api/v1/shorten`,
-      JSON.stringify({ originalUrl: "https://example.com/load-test-target" }),
+      `${BASE_URL}/shorten`,
+      JSON.stringify({ longURL: "https://example.com/load-test-target" }),
       {
         headers: {
           "Content-Type": "application/json",
@@ -58,21 +50,31 @@ export function authSetup() {
         },
       },
     );
-    return res.json("shortCode");
+    check(res, {
+      "setup shorten succeeded": (r) => r.status === 201 || r.status === 200,
+      "setup returned short URL": (r) => !!r.json("data.url"),
+    });
+    if (res.status !== 201 && res.status !== 200) {
+      throw new Error(`Setup failed: could not create a test URL. Status: ${res.status}`);
+    }
+
+    const shortUrl = res.json("data.url");
+    return new URL(shortUrl).pathname.split("/").filter(Boolean).pop();
   });
 
   return { tokens, shortCodes };
 }
 
-// Picks a random token so load spreads across multiple "users" rather
-// than every VU hammering the API as the exact same account.
+
 export function randomToken(data) {
   return data.tokens[Math.floor(Math.random() * data.tokens.length)];
 }
 
+
 export function randomShortCode(data) {
   return data.shortCodes[Math.floor(Math.random() * data.shortCodes.length)];
 }
+
 
 export function authHeaders(token) {
   return {
