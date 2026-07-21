@@ -19,6 +19,7 @@ import {
 import logger from "../observability/pino-logging/index.pino.js";
 import { getTTL, refreshTtl } from "../utils/cache-utils/cacheTTL.utils.js";
 import env from "../config/env.js";
+import redis from "../config/redis/index.redis.js";
 import {
   cacheHitLog,
   cacheMissLog,
@@ -36,6 +37,7 @@ const keys = {
 type ServiceResponse = {
   status: number;
   url_id?: string;
+  user_id?: string;
   data?: QueryResult<any> | CacheRecord | string | string[] | null;
 };
 
@@ -51,11 +53,9 @@ export async function resolveLongUrl(
       const result = generateShortCode();
       const cacheKey = keys.url(result.shortCode);
 
-      // checking if already in cache or not, escaping duplication
       const cacheResult = await get(cacheKey);
 
       if (!cacheResult) {
-        //cache logging
         cacheMissLog({
           reqId: requestId,
           reqMethod: "POST",
@@ -72,11 +72,10 @@ export async function resolveLongUrl(
           return {
             status: 200,
             url_id: existingRow.id?.toString(),
-            data: `${baseURL}/${existingRow.short_code}`,
+        data: `${baseURL}/r/${existingRow.short_code}`,
           };
         }
 
-        //inserting into DB
         await createUrl({
           id: result.id.toString(),
           shortCode: result.shortCode,
@@ -84,14 +83,12 @@ export async function resolveLongUrl(
           user_id: userId,
         });
 
-        //invalidating all stored urls (stale record)
-        await deleteAllUrlsOfUser(keys.all_urls(userId));
+        await deleteAllUrlsOfUser(keys.all_urls(userId)); //cache
 
         const now = new Date();
 
         const TTL = getTTL(0, now);
 
-        //save new record to cache
         await set({
           id: result.id.toString(),
           shortCode: result.shortCode,
@@ -104,13 +101,12 @@ export async function resolveLongUrl(
           cachedTtl: TTL,
         });
 
-        //response
         const baseURL = env.APP_URL;
 
         return {
           status: 201,
           url_id: result.id.toString(),
-          data: `${baseURL}/${result.shortCode}`,
+          data: `${baseURL}/r/${result.shortCode}`,
         };
       }
 
@@ -143,16 +139,13 @@ export async function resolveLongUrl(
 export async function resolveShortCode(
   requestId: any,
   shortCode: string,
-  userId: string,
 ): Promise<ServiceResponse | null> {
   const cacheKey = keys.url(shortCode);
 
   try {
-    // check cache to get redirect long url
     const cacheResult = await get(cacheKey);
 
     if (!cacheResult) {
-      //cache miss logging
       cacheMissLog({
         reqId: requestId,
         reqMethod: "REDIRECT",
@@ -162,12 +155,11 @@ export async function resolveShortCode(
 
       const result = await findByShortCode(shortCode);
 
-      //validate DB results
       if (!result || result?.rows.length === 0) {
         return null;
       }
 
-      const { id, click_count, created_at, long_url } = result.rows[0];
+      const { id, user_id, click_count, created_at, long_url } = result.rows[0];
       const TTL = getTTL(Number(click_count), new Date(created_at));
 
       const now = new Date();
@@ -175,7 +167,7 @@ export async function resolveShortCode(
       await set({
         id: id.toString(),
         shortCode: String(shortCode),
-        user_id: userId,
+        user_id: user_id.toString(),
         longURL: long_url,
         clickCount: click_count,
         createdAt: created_at,
@@ -184,10 +176,14 @@ export async function resolveShortCode(
         cachedTtl: TTL,
       });
 
-      // redirect
-      return { status: 302, url_id: id.toString(), data: long_url };
+      return {
+        status: 302,
+        url_id: id.toString(),
+        user_id: user_id.toString(),
+        data: long_url,
+      };
     }
-    //cache hit logging
+   
     cacheHitLog({
       reqId: requestId,
       reqMethod: "REDIRECT",
@@ -196,12 +192,12 @@ export async function resolveShortCode(
       route: "redirect-to-long-url",
     });
 
-    //refreshing ttl if near to expire
     await refreshTtl(cacheResult);
 
     return {
       status: 302,
       url_id: cacheResult.id,
+      user_id: cacheResult.user_id,
       data: cacheResult.longURL,
     };
   } catch (error: any) {
@@ -220,7 +216,6 @@ export const getUrlId = async (
     const cacheResult = await getUrlID(cacheKey);
 
     if (!cacheResult) {
-      //cache miss logging
       cacheMissLog({
         reqId: requestId,
         reqMethod: "GET",
@@ -269,7 +264,6 @@ export const fetchAllUrls = async (
     const cacheResult = await getAllUrlsOfUser(cacheKey);
 
     if (!cacheResult) {
-      //cache miss logging
       cacheMissLog({
         reqId: requestId,
         reqMethod: "GET",
@@ -339,7 +333,10 @@ export const deleteShortUrl = async (
       };
     }
 
-    await deleteAllUrlsOfUser(keys.all_urls(userId));
+    await Promise.all([
+      deleteAllUrlsOfUser(keys.all_urls(userId)),
+      redis.del(keys.url(shortCode)),
+    ]);
 
     return {
       status: 200,
