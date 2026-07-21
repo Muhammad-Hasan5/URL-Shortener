@@ -59,7 +59,9 @@ export function authSetup() {
     }
 
     const shortUrl = res.json("data.url");
-    return new URL(shortUrl).pathname.split("/").filter(Boolean).pop();
+    // k6's Goja runtime does not expose the browser/Node WHATWG `URL` API.
+    // The short code is always the final segment of the returned short URL.
+    return String(shortUrl).replace(/\/$/, "").split("/").pop();
   });
 
   return { tokens, shortCodes };
