@@ -2,7 +2,7 @@ import { generateShortCode } from "../utils/url-utils/shortCode.utils.js";
 import {
   checkIfAlreadyExists,
   createUrl,
-  findByShortCodeAndUserId,
+  findByShortCode,
   getUrlIdFromDb,
   fetchAllByUserId,
   deleteByShortcodeAndUserid,
@@ -26,9 +26,8 @@ import {
 import type { QueryResult } from "pg";
 import type { CacheRecord } from "../@types/cache/index.types.js";
 
-// perfix builder for cache keys(observe the beauty of it mannnnnn!!)
 const keys = {
-  url: (shortCode: string, userId: string) => `url:${shortCode}:${userId}`,
+  url: (shortCode: string) => `url:${shortCode}`,
   url_id: (shortCode: string, userId: string) =>
     `url:id:${shortCode}:${userId}`,
   all_urls: (userId: string) => `All:urls:${userId}`,
@@ -50,7 +49,7 @@ export async function resolveLongUrl(
   while (attempts < 3) {
     try {
       const result = generateShortCode();
-      const cacheKey = keys.url(result.shortCode, userId);
+      const cacheKey = keys.url(result.shortCode);
 
       // checking if already in cache or not, escaping duplication
       const cacheResult = await get(cacheKey);
@@ -68,9 +67,12 @@ export async function resolveLongUrl(
         const existing = await checkIfAlreadyExists(longURL, userId);
 
         if (existing && (existing?.rows.length as number) > 0) {
+          const existingRow = existing.rows[0];
+          const baseURL = env.APP_URL;
           return {
             status: 200,
-            data: existing,
+            url_id: existingRow.id?.toString(),
+            data: `${baseURL}/${existingRow.short_code}`,
           };
         }
 
@@ -112,7 +114,6 @@ export async function resolveLongUrl(
         };
       }
 
-      // cache hit logging
       cacheHitLog({
         reqId: requestId,
         reqMethod: "POST",
@@ -122,14 +123,7 @@ export async function resolveLongUrl(
       });
 
       attempts++;
-
-      const baseURL = env.APP_URL;
-
-      return {
-        status: 200,
-        url_id: cacheResult.id.toString(),
-        data: `${baseURL}/${cacheResult.shortCode}`,
-      };
+      continue;
     } catch (error: any) {
       logger.error({ error, attempts }, "resolveLongURL.service.failed");
 
@@ -151,7 +145,7 @@ export async function resolveShortCode(
   shortCode: string,
   userId: string,
 ): Promise<ServiceResponse | null> {
-  const cacheKey = keys.url(shortCode, userId);
+  const cacheKey = keys.url(shortCode);
 
   try {
     // check cache to get redirect long url
@@ -166,8 +160,7 @@ export async function resolveShortCode(
         route: "redirect-to-long-url",
       });
 
-      // call db to get redirect long url
-      const result = await findByShortCodeAndUserId(shortCode, userId);
+      const result = await findByShortCode(shortCode);
 
       //validate DB results
       if (!result || result?.rows.length === 0) {
@@ -179,7 +172,6 @@ export async function resolveShortCode(
 
       const now = new Date();
 
-      //save to cache
       await set({
         id: id.toString(),
         shortCode: String(shortCode),
@@ -339,6 +331,16 @@ export const deleteShortUrl = async (
         data: "error deleting records form db",
       };
     }
+
+    if (res.rowCount === 0) {
+      return {
+        status: 404,
+        data: "url not found",
+      };
+    }
+
+    await deleteAllUrlsOfUser(keys.all_urls(userId));
+
     return {
       status: 200,
       data: null,
