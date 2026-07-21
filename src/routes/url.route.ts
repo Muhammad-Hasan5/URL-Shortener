@@ -14,17 +14,17 @@ const router = Router();
 
 router
   .route("/shorten")
-  .post(limiter, verifyJWT, logRequestID, requestLogger, shortURL);
+  .post(verifyJWT, logRequestID, requestLogger, shortURL);
 
 //public route => for url redirect
 router
   .route("/r/:shortCode")
-  .get(limiter, logRequestID, requestLogger, redirect);
+  .get(logRequestID, requestLogger, redirect);
 router
   .route("/urls-list")
-  .post(limiter, verifyJWT, logRequestID, requestLogger, getUrlsList);
+  .post(verifyJWT, logRequestID, requestLogger, getUrlsList);
 router
   .route("/del-url/:shortCode")
-  .post(limiter, verifyJWT, logRequestID, requestLogger, deleteUrl);
+  .post(verifyJWT, logRequestID, requestLogger, deleteUrl);
 
 export default router;
