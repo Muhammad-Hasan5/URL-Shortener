@@ -14,7 +14,6 @@ export const createUrl = async (
 
     const userid = assertUUID(newRecord.user_id!);
 
-    // querying DB
     return await db.query(queryText, [
       newRecord.id,
       userid,
@@ -23,11 +22,10 @@ export const createUrl = async (
     ]);
   } catch (error: any) {
     logger.error("error saving to DB", error.stack);
-    return null;
+    throw error;
   }
 };
 
-// get from db (owner-scoped lookup — kept for completeness, not used by /r/:shortCode)
 export const findByShortCodeAndUserId = async (
   shortCode: string,
   user_id: string,
@@ -47,17 +45,13 @@ export const findByShortCodeAndUserId = async (
   }
 };
 
-// get from db — GLOBAL lookup by short_code only.
-// The /r/:shortCode route is public (no verifyJWT), so this must not be
-// scoped by user_id, otherwise anonymous visitors can never resolve a link.
-// Assumes short_code is unique across the whole `urls` table.
 export const findByShortCode = async (
   shortCode: string,
 ): Promise<QueryResult<any> | null> => {
   try {
     const db = getPool("read");
     let queryText =
-      "SELECT id, click_count, created_at, long_url from urls where short_code = $1";
+      "SELECT id, user_id, click_count, created_at, long_url from urls where short_code = $1";
 
     let result = await db.query(queryText, [shortCode]);
     return result;
