@@ -92,17 +92,19 @@ export const incr_click_counts = async (
 export const aggregateRecentClicks = async () => {
   const oneMinAgo = new Date(Date.now() - 60_000);
 
-  // Read raw clicks from the last 60 seconds
   const clicks = await db.query(
     `
     SELECT url_id, user_id, DATE(clicked_at) as date,
-           country_code, device_type, referrer_type, browser_name,
+           COALESCE(country_code, 'ZZ') AS country_code,
+           COALESCE(device_type, 'unknown') AS device_type,
+           COALESCE(referrer_type, 'unknown') AS referrer_type,
+           COALESCE(browser_name, 'unknown') AS browser_name,
            COUNT(*) as total,
            COUNT(*) FILTER (WHERE is_unique) as unique_c,
            COUNT(*) FILTER (WHERE is_bot)   as bots
     FROM   url_clicks
     WHERE  clicked_at >= $1
-    GROUP  BY url_id, user_id,  date, country_code, device_type, referrer_type, browser_name
+    GROUP  BY url_id, user_id, DATE(clicked_at), country_code, device_type, referrer_type, browser_name
   `,
     [oneMinAgo],
   );
@@ -111,14 +113,14 @@ export const aggregateRecentClicks = async () => {
   for (const row of clicks.rows) {
     await db.query(
       `
-      INSERT INTO url_clicks_daily (url_id,date,country_code,device_type,
+      INSERT INTO url_clicks_daily (url_id,user_id,date,country_code,device_type,
         referrer_type,browser_name,total_clicks,unique_clicks,bot_clicks)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       ON CONFLICT (url_id,user_id,date,country_code,device_type,referrer_type,browser_name)
       DO UPDATE SET
-        total_clicks  = url_click_daily.total_clicks  + EXCLUDED.total_clicks,
-        unique_clicks = url_click_daily.unique_clicks + EXCLUDED.unique_clicks,
-        bot_clicks    = url_click_daily.bot_clicks    + EXCLUDED.bot_clicks
+        total_clicks  = url_clicks_daily.total_clicks  + EXCLUDED.total_clicks,
+        unique_clicks = url_clicks_daily.unique_clicks + EXCLUDED.unique_clicks,
+        bot_clicks    = url_clicks_daily.bot_clicks    + EXCLUDED.bot_clicks
     `,
       [
         row.url_id,
