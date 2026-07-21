@@ -1,5 +1,5 @@
 import { Reader } from "@maxmind/geoip2-node";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,20 +12,26 @@ const dbPath = path.resolve(
 );
 
 
-let cityBuffer = readFileSync(dbPath);
-let cityData = Reader.openBuffer(cityBuffer);
+const cityData = existsSync(dbPath)
+  ? Reader.openBuffer(readFileSync(dbPath))
+  : null;
 
-export function getLocation(ip: string) {
-  let cityRes = cityData.city(ip);
+export function getLocation(ip: string | undefined) {
+  if (!cityData || !ip) return {};
 
-  return {
-    countryCode: cityRes.country?.isoCode,
-    countryName: cityRes.country?.names.en,
-    city: cityRes.city?.names.en,
-    region: cityRes.subdivisions?.[0]?.names.en,
-    latitude: cityRes.location?.latitude,
-    longitude: cityRes.location?.longitude,
-    timezone: cityRes.location?.timeZone,
-    t: cityRes.country?.names,
-  };
+  try {
+    const cityRes = cityData.city(ip);
+
+    return {
+      countryCode: cityRes.country?.isoCode,
+      countryName: cityRes.country?.names.en,
+      city: cityRes.city?.names.en,
+      region: cityRes.subdivisions?.[0]?.names.en,
+      latitude: cityRes.location?.latitude,
+      longitude: cityRes.location?.longitude,
+      timezone: cityRes.location?.timeZone,
+    };
+  } catch {
+    return {};
+  }
 }
