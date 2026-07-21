@@ -8,7 +8,18 @@ import { requestLogger } from "./middlewares/requestLogger.middleware.js";
 
 const app = express();
 
-app.use(express.json());
+app.set("trust proxy", 1);
+
+app.use(
+  express.json({
+    type: (req) => {
+      const contentType = req.headers["content-type"];
+      const value = Array.isArray(contentType) ? contentType[0] : contentType;
+      return !value || /application\/(?:[\w.-]+\+)?json/i.test(value);
+    },
+  }),
+);
+
 app.use(requestLogger)
 app.use(cookieParser())
 app.use(express.urlencoded({ limit: "5mb", extended: true }));
@@ -17,12 +28,13 @@ app.get("/", (req, res) => {
   res.send("welcome to URLY!");
 });
 
-//attaching healthcheck-router to app
+
 app.use("/", authrouter)
+
 app.use("/", healthCheckRouter);
-//attaching url-router to app
+
 app.use("/", urlRouter);
-//attaching analytics router to app
+
 app.use("/", analyticsRouter);
 
 export default app;
