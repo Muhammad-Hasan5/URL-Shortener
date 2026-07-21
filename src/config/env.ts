@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.resolve(__dirname, "../../.env");
 
-// Lightweight .env loader (no extra dependency)
+
 if (fs.existsSync(envPath)) {
   try {
     const content = fs.readFileSync(envPath, "utf8");
@@ -59,7 +59,5 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>;
 
 const env: Env = envSchema.parse(process.env);
-
-console.log(env)
 
 export default env;
