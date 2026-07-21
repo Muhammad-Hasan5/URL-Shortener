@@ -8,7 +8,6 @@ export const getDashBoardData = asyncHandler(
     const userId = req.user?.id;
     const shortCode = req.params.shortCode;
 
-    //validate param: short code
     if (!shortCode) {
       return res.status(400).json({
         status: 400,
@@ -33,9 +32,9 @@ export const getDashBoardData = asyncHandler(
       { rangeInDays: 30 },
     );
 
-    return res.status(400).json({
-      status: 404,
-      success: false,
+    return res.status(200).json({
+      status: 200,
+      success: true,
       data: result,
       msg: "analytics fetched",
     });
