@@ -27,7 +27,7 @@ export const createUrl = async (
   }
 };
 
-// get from db
+// get from db (owner-scoped lookup — kept for completeness, not used by /r/:shortCode)
 export const findByShortCodeAndUserId = async (
   shortCode: string,
   user_id: string,
@@ -35,11 +35,31 @@ export const findByShortCodeAndUserId = async (
   try {
     const db = getPool("read");
     let queryText =
-      "SELECT long_url from urls where short_code = $1 and user_id = $2";
+      "SELECT id, click_count, created_at, long_url from urls where short_code = $1 and user_id = $2";
 
     const userid = assertUUID(user_id);
 
     let result = await db.query(queryText, [shortCode, userid]);
+    return result;
+  } catch (error: any) {
+    logger.error("error fetching url from DB", error.stack);
+    return null;
+  }
+};
+
+// get from db — GLOBAL lookup by short_code only.
+// The /r/:shortCode route is public (no verifyJWT), so this must not be
+// scoped by user_id, otherwise anonymous visitors can never resolve a link.
+// Assumes short_code is unique across the whole `urls` table.
+export const findByShortCode = async (
+  shortCode: string,
+): Promise<QueryResult<any> | null> => {
+  try {
+    const db = getPool("read");
+    let queryText =
+      "SELECT id, click_count, created_at, long_url from urls where short_code = $1";
+
+    let result = await db.query(queryText, [shortCode]);
     return result;
   } catch (error: any) {
     logger.error("error fetching url from DB", error.stack);
@@ -85,25 +105,31 @@ export const getUrlIdFromDb = async (
 };
 
 export const fetchAllByUserId = async (user_id: string) => {
-    const db = getPool("read");
-    const userid = assertUUID(user_id);
-    const res = await db.query(
-      "select short_code, long_url, created_at from urls where user_id = $1 order by created_at desc",
-      [userid],
-    );
-    return res;
+  const db = getPool("read");
+  const userid = assertUUID(user_id);
+  const res = await db.query(
+    "select short_code, long_url, created_at from urls where user_id = $1 order by created_at desc",
+    [userid],
+  );
+  return res;
 };
 
-export const deleteByShortcodeAndUserid = async (user_id: string, shortCode: string) => {
+export const deleteByShortcodeAndUserid = async (
+  user_id: string,
+  shortCode: string,
+) => {
   try {
-    const db = getPool("read");
+    // deletes must go to the primary/write pool, not the read replica
+    const db = getPool("write");
     const userid = assertUUID(user_id);
-    await db.query(
+    const result = await db.query(
       "delete from urls where short_code = $1 and user_id = $2",
       [shortCode, userid],
     );
+    // rowCount lets the caller distinguish "deleted" from "nothing matched"
+    return result;
   } catch (error: any) {
-    logger.error("error fetching urls from DB", error.stack);
+    logger.error("error deleting url from DB", error.stack);
     return null;
   }
 };
