@@ -2,12 +2,14 @@ import redis from "../config/redis/index.redis.js";
 import { safeRedis } from "../config/opossum-circuit-Breaker/redisBreaker.opossum.js";
 import type { CacheRecord } from "../@types/cache/index.types.js";
 
-// prefix for key (no trailing colon here; we'll add it when building keys)
+
 const SETGET_PREFIX = "url";
+
+const urlKey = (shortCode: string) => `${SETGET_PREFIX}:${shortCode}`;
 
 // saving to cache
 export async function set(cacheRecord: CacheRecord): Promise<void> {
-  const key = `${SETGET_PREFIX}:${cacheRecord.shortCode}:${cacheRecord.user_id}`;
+  const key = urlKey(cacheRecord.shortCode);
   await safeRedis(async () =>
     await redis.set(key, JSON.stringify(cacheRecord), "EX", cacheRecord.cachedTtl),
   );
@@ -20,19 +22,18 @@ export async function get(key: string): Promise<CacheRecord | null> {
   return JSON.parse(res);
 }
 
-// Get TTL for a cache entry by shortCode and userId
-export async function getKeyTTL(shortCode: string, userId: string): Promise<number | null> {
-  const key = `${SETGET_PREFIX}:${shortCode}:${userId}`;
+// Get TTL for a public URL cache entry.
+export async function getKeyTTL(shortCode: string): Promise<number | null> {
+  const key = urlKey(shortCode);
   return await safeRedis(async () => await redis.ttl(key));
 }
 
-// Update TTL for a cache entry by shortCode and userId
+// Update TTL for a public URL cache entry.
 export async function updateKeyTTL(
   shortCode: string,
-  userId: string,
   newTTL: number,
 ): Promise<void> {
-  const key = `${SETGET_PREFIX}:${shortCode}:${userId}`;
+  const key = urlKey(shortCode);
   await safeRedis(async () => await redis.expire(key, newTTL));
 }
 
