@@ -11,18 +11,23 @@ import { asyncHandler } from "../utils/asyncHandler.utils.js";
 
 // covnert long url to SHORT one
 export const shortURL = asyncHandler(async (req: Request, res: Response) => {
-  const { longURL } = req.body;
+  const longURL = req.body?.longUrl ?? req.body?.longURL ?? req.body?.originalUrl;
   const userId = req.user?.id;
 
   if (typeof longURL !== "string" || longURL.trim() === "") {
     return res.status(400).json({
       status: 400,
       success: false,
-      msg: "longURL is required and must be a non-empty string",
+      msg: "longUrl is required and must be a non-empty string",
+      details: {
+        expectedContentType: "application/json",
+        receivedContentType: req.get("content-type") ?? null,
+        receivedFields:
+          req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
+      },
     });
   }
 
-  //validate incoming long url format
   try {
     new URL(longURL.trim());
   } catch {
@@ -33,10 +38,8 @@ export const shortURL = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  //resolve
-  const result = await resolveLongUrl(req.id, String(longURL), userId!);
+  const result = await resolveLongUrl(req.id, longURL.trim(), userId!);
 
-  // response
   if (result === null) {
     return res.status(400).json({
       success: false,
@@ -47,7 +50,7 @@ export const shortURL = asyncHandler(async (req: Request, res: Response) => {
   if (result.status === 200) {
     return res.status(200).json({
       success: true,
-      data: result.data,
+      data: { url_id: result.url_id, url: result.data },
       msg: "this url was already shorten",
     });
   }
@@ -59,13 +62,11 @@ export const shortURL = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+
 // REDIRECT to long url
 export const redirect = asyncHandler(async (req: Request, res: Response) => {
-  //fetch
   const shortCode = req.params.shortCode;
-  const userId = req.user?.id;
 
-  //validate param: short code
   if (!shortCode) {
     return res.status(400).json({
       status: 400,
@@ -74,10 +75,9 @@ export const redirect = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  //resolve
-  const result = await resolveShortCode(req.id, String(shortCode), userId!);
 
-  //response
+  const result = await resolveShortCode(req.id, String(shortCode));
+
   if (result === null) {
     return res.status(400).json({
       success: false,
@@ -87,19 +87,21 @@ export const redirect = asyncHandler(async (req: Request, res: Response) => {
 
   res.redirect(302, String(result.data));
 
-  analyticsQueue.add(
+  void analyticsQueue.add(
     "click",
     {
       short_code: shortCode,
       url_id: result.url_id,
-      user_id: userId,
+      user_id: result.user_id,
       ip: getClientIp(req),
       user_agent: req.headers["user-agent"],
       referrer: req.headers["referer"],
       clicked_at: new Date().toISOString(),
     },
     { removeOnComplete: 500, attempts: 3 },
-  );
+  ).catch(() => {
+    //will add response later
+  });
 });
 
 //fetch all urls of a user
