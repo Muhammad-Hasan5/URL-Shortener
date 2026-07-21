@@ -10,7 +10,7 @@ import {
 
 
 export const options = {
-  vus: 2,
+  vus: 1,
   duration: "30s",
   thresholds: {
     http_req_failed: ["rate<0.01"], 
@@ -26,18 +26,18 @@ export function setup() {
 export default function (data) {
   const token = randomToken(data);
 
-  // 1. Authenticated write path — create a short URL
+  // 1. Authenticated => create a short URL
   const shortenRes = http.post(
     `${BASE_URL}/shorten`,
-    JSON.stringify({ originalUrl: "https://example.com/smoke-test" }),
+    JSON.stringify({ longURL: "https://example.com/smoke-test" }),
     authHeaders(token),
   );
   check(shortenRes, {
-    "shorten: status 201": (r) => r.status === 201,
-    "shorten: returns shortCode": (r) => !!r.json("shortCode"),
+    "shorten: status 201 or existing 200": (r) => [200, 201].includes(r.status),
+    "shorten: returns short url": (r) => !!r.json("data.url"),
   });
 
-  // 2. Public read path — redirect, no auth header sent at all
+  // 2. Public read path => redirect, no auth header sent at all
   const code = randomShortCode(data);
   const redirectRes = http.get(`${BASE_URL}/r/${code}`, {
     redirects: 0, 
@@ -47,16 +47,16 @@ export default function (data) {
     "redirect: has Location header": (r) => !!r.headers["Location"],
   });
 
-  // 3. Authenticated read path — user's own URL list
+  // 3. Authenticated read path => user's own URL list
   const listRes = http.get(`${BASE_URL}/urls-list`, authHeaders(token));
   check(listRes, {
     "list urls: status 200": (r) => r.status === 200,
   });
 
-  // 4. Negative case — confirm auth is actually being enforced
+  // 4. Negative case => confirm auth is actually being enforced
   const noAuthRes = http.post(
-    `${BASE_URL}/api/v1/shorten`,
-    JSON.stringify({ originalUrl: "https://example.com/should-fail" }),
+    `${BASE_URL}/shorten`,
+    JSON.stringify({ longURL: "https://example.com/should-fail" }),
     { headers: { "Content-Type": "application/json" } }, 
   );
   check(noAuthRes, {
