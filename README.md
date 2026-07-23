@@ -24,7 +24,7 @@
 - [Results: before vs after scaling](#results-before-vs-after-scaling)
 - [The most important finding](#the-most-important-finding-read-path-vs-write-path)
 - [What the stress test proved](#what-the-stress-test-proved)
-- [Honest limitations](#honest-limitations)
+- [Limitations](#honest-limitations)
 - [Running it yourself](#running-it-yourself)
 - [What I'd do next](#what-id-do-next)
 
