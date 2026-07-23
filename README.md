@@ -108,7 +108,7 @@ Switching to a local Redis instance recovered some of that, but still landed at 
 **My approach:** 
     This problem is solved through Probabilistic Early Expiration based on the short URL's click count and time of creation. Following is the classification of URLs based of click count and time of creation for assigning Time To Live (TTL).
 
-    '''javascript
+    '''js
         function shouldRefresh(remainingTtl: number, originalTtl: number, beta = 1.0,): boolean {
           if (remainingTtl < 0) return true;
 
