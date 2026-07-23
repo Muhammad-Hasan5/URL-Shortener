@@ -66,6 +66,12 @@ I started with a single Node.js process, one Postgres instance, and a naive Redi
     
 ---
 
+## Database Design
+
+  ![Database Design](images/DatabseDesign.png)
+
+---
+
 ## From prototype to distributed system
 
 | | v1 — Prototype | v2 — Current system |
@@ -111,7 +117,7 @@ Switching to a local Redis instance recovered some of that, but still landed at 
 
           return Math.random() < refreshProbability;
         }
-        
+
         const TTL = {
             NEW: 5 * 60,  // 5 min.
             COLD: 10 * 60,  // 10 min.
