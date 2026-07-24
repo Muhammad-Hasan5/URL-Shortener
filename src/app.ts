@@ -4,19 +4,30 @@ import urlRouter from "./routes/url.route.js";
 import healthCheckRouter from "./routes/healthcheck.route.js";
 import analyticsRouter from "./routes/analytics.route.js";
 import authrouter from "./routes/auth.route.js";
-import swaggerRouter from "./docs/swagger.js"
+import swaggerRouter from "./docs/swagger.js";
 import cookieParser from "cookie-parser";
 import { requestLogger } from "./middlewares/requestLogger.middleware.js";
+import env from "./config/env.js";
 
 const app = express();
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-  exposedHeaders: ["Location", "X-Request-Id", "Set-Cookie"],
-}));
+const allowedOrigins = [env.LOCAL_FRONTEND_URL, env.PRODUCTION_FRONTEND_URL];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Location", "X-Request-Id"],
+  }),
+);
+
 app.use(express.json());
 app.use(requestLogger);
 app.use(cookieParser());
