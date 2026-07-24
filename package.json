@@ -19,10 +19,12 @@
   "dependencies": {
     "@maxmind/geoip2-node": "^6.3.4",
     "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
     "argon2": "^0.44.0",
     "bullmq": "^5.78.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",
     "ioredis": "^5.10.1",

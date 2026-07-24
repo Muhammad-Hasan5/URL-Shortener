@@ -1,3 +1,4 @@
+import cors from "cors";
 import express from "express";
 import urlRouter from "./routes/url.route.js";
 import healthCheckRouter from "./routes/healthcheck.route.js";
@@ -9,6 +10,13 @@ import { requestLogger } from "./middlewares/requestLogger.middleware.js";
 
 const app = express();
 
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  exposedHeaders: ["Location", "X-Request-Id", "Set-Cookie"],
+}));
 app.use(express.json());
 app.use(requestLogger);
 app.use(cookieParser());
