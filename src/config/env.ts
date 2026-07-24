@@ -7,7 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.resolve(__dirname, "../../.env");
 
-
 if (fs.existsSync(envPath)) {
   try {
     const content = fs.readFileSync(envPath, "utf8");
@@ -19,7 +18,10 @@ if (fs.existsSync(envPath)) {
       const key = trimmed.slice(0, eqIndex).trim();
       let val = trimmed.slice(eqIndex + 1).trim();
       // remove surrounding quotes if present
-      if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
+      if (
+        (val.startsWith("'") && val.endsWith("'")) ||
+        (val.startsWith('"') && val.endsWith('"'))
+      ) {
         val = val.slice(1, -1);
       }
       if (key && process.env[key] === undefined) {
@@ -54,6 +56,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string(),
   MAIL_FROM: z.string(),
   APP_URL: z.url(),
+  LOCAL_FRONTEND_URL: z.url(),
+  PRODUCTION_FRONTEND_URL: z.url(),
 });
 
 type Env = z.infer<typeof envSchema>;
