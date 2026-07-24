@@ -6,17 +6,43 @@ export const registerUserObject = z.object({
     lastName: z.string(),
     email: z.string(),
     password: z.string(),
-  })
+  }),
 });
 
 export const loginSchemaObject = z.object({
   body: z.object({
     email: z.string(),
     password: z.string(),
-  })
+  }),
+});
+
+export const incomingPassword = z.object({
+  body: z.object({
+    password: z.string(),
+  }),
+});
+
+export const incomingEmail = z.object({
+  body: z.object({
+    email: z.string(),
+  }),
+});
+
+export const changePasswordObject = z.object({
+  body: z.object({
+    oldPassword: z.string(),
+    newPassword: z.string(),
+  }),
 });
 
 
+export const resetForgotPasswordObject = z.object({
+  body: z.object({
+    token: z.string(),
+    newPassword: z.string(),
+  }),
+});
+;
 
 export type sanitizedUser = {
   id: string;
