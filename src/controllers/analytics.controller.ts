@@ -12,13 +12,13 @@ export const getDashBoardData = asyncHandler(
       return res.status(400).json({
         status: 400,
         success: false,
-        msg: "short code is not available",
+        msg: "short code is not provided in params",
       });
     }
 
     const id = await getUrlId(String(shortCode), req.id, userId!);
     if (!id) {
-      return res.status(400).json({
+      return res.status(404).json({
         status: 404,
         success: false,
         msg: "short url is not available or got deleted",
@@ -31,6 +31,14 @@ export const getDashBoardData = asyncHandler(
       userId!,
       { rangeInDays: 30 },
     );
+
+    if(!result || result === null || result === undefined ){
+      return res.status(500).json({
+        status: 500,
+        success: false,
+        msg: "internal server error, problems fetching analytics",
+      });
+    }
 
     return res.status(200).json({
       status: 200,
