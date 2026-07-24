@@ -20,8 +20,6 @@ const cookieOptions = {
   sameSite: "strict" as const,
 };
 
-
-
 export const registerUser = asyncHandler(
   async (req: Request, res: Response) => {
     const { firstName, lastName, email, password } = req.body ?? {};
