@@ -2,15 +2,18 @@ import { Redis } from "ioredis";
 import logger from "../../observability/pino-logging/index.pino.js";
 import env from "../env.js";
 
-const redis = new Redis(env.REDIS_URL, {
-  retryStrategy(times) {
-   const delay = Math.min(times * 300, 5000);
-   logger.warn({ attempt: times, delayMs: delay }, "redis.retry");
-   return delay;
-  },
-}); 
+const redisUrl =
+  env.NODE_ENV === "production" ? env.REDIS_UPSTASH_URL : env.REDIS_URL;
 
-export const bullConnection = new Redis(process.env.REDIS_URL!, {
+const redis = new Redis(redisUrl, {
+  retryStrategy(times) {
+    const delay = Math.min(times * 300, 5000);
+    logger.warn({ attempt: times, delayMs: delay }, "redis.retry");
+    return delay;
+  },
+});
+
+export const bullConnection = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
 });
 
