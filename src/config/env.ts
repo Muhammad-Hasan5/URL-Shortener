@@ -38,6 +38,7 @@ const envSchema = z.object({
   PG_REPLICA_STRING: z.string(),
   PG_NEON_DB: z.string(),
   REDIS_URL: z.string(),
+  REDIS_UPSTASH_URL: z.string(),
   PORT: z.coerce.number().default(3000),
   LOG_LEVEL: z.string().default("info"),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
