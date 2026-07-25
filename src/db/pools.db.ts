@@ -11,7 +11,10 @@ export const primaryPool = new Pool({
 });
 
 export const replicaPool = new Pool({
-  connectionString: String(env.PG_REPLICA_STRING),
+  connectionString:
+    env.NODE_ENV === "production"
+      ? String(env.PG_PRIMARY_STRING)
+      : String(env.PG_REPLICA_STRING),
   max: 12,
   connectionTimeoutMillis: 3000,
   idleTimeoutMillis: 30000,
