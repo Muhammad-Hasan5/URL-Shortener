@@ -2,8 +2,6 @@ import { Redis } from "ioredis";
 import logger from "../../observability/pino-logging/index.pino.js";
 import env from "../env.js";
 
-// creating redis client
-
 const redis = new Redis(env.REDIS_URL, {
   retryStrategy(times) {
    const delay = Math.min(times * 300, 5000);
