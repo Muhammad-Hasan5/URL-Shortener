@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: url-shortener-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false        
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: url-shortener-cache
+          property: connectionString
+      - key: RUN_WORKER_INLINE
+
+  - type: keyvalue
+    name: url-shortener-cache
+    plan: free
